@@ -1,0 +1,44 @@
+# Gradle & Build files
+.gradle/
+build/
+**/build/
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.vtcode/
+vtcode.toml
+.kotlin/
+
+# Android specific
+local.properties
+.externalNativeBuild/
+.cxx/
+captures/
+
+# Log files
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Mobile tools
+fastlane/report.xml
+fastlane/Preview.html
+
+# Binary files
+*.zip
+*.apk
+*.aar
+*.jar
+
+# Secrets
+*.jks
+*.keystore
+google-services.json
+.artifacts/
+*.artifact.md
