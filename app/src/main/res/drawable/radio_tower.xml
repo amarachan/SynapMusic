@@ -1,0 +1,35 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <!-- Orange Flat Base -->
+  <path
+      android:fillColor="#FFFF9800"
+      android:pathData="M2,21.5h20v2H2z"/>
+  <!-- Dark Gray Triangular Lattice Tower & Central Support -->
+  <path
+      android:fillColor="#FF455A64"
+      android:pathData="M11,7L4.5,21.5h2.2L12,10.2l5.3,11.3h2.2L13,7h-2zM9.5,14.5l2.5,-3.2l2.5,3.2H9.5zM8,18l2.2,-2.8l1.8,2.3l1.8,-2.3l2.2,2.8H8z"/>
+  <path
+      android:fillColor="#FF37474F"
+      android:pathData="M11.2,7h1.6v14.5h-1.6z"/>
+  <!-- Light Blue Circular Antenna Circle -->
+  <path
+      android:fillColor="#FF29B6F6"
+      android:pathData="M12,2a2.5,2.5 0,1 0,0 5a2.5,2.5 0,0 0,0 -5z"/>
+  <!-- Light Blue Left Signal Waves (3 Concentric Arcs) -->
+  <path
+      android:fillColor="#FF29B6F6"
+      android:pathData="M7.4,2.8A1,1 0,0 0,6 2.8A8.5,8.5 0,0 0,6 10.2A1,1 0,0 0,7.4 8.8A6.5,6.5 0,0 1,7.4 4.2A1,1 0,0 0,7.4 2.8z"/>
+  <path
+      android:fillColor="#FF4FC3F7"
+      android:pathData="M5.1,0.5A1,1 0,0 0,3.7 0.5A11.5,11.5 0,0 0,3.7 12.5A1,1 0,0 0,5.1 11.1A9.5,9.5 0,0 1,5.1 1.9A1,1 0,0 0,5.1 0.5z"/>
+  <!-- Light Blue Right Signal Waves (3 Concentric Arcs) -->
+  <path
+      android:fillColor="#FF29B6F6"
+      android:pathData="M16.6,2.8A1,1 0,0 1,18 2.8A8.5,8.5 0,0 1,18 10.2A1,1 0,0 1,16.6 8.8A6.5,6.5 0,0 0,16.6 4.2A1,1 0,0 1,16.6 2.8z"/>
+  <path
+      android:fillColor="#FF4FC3F7"
+      android:pathData="M18.9,0.5A1,1 0,0 1,20.3 0.5A11.5,11.5 0,0 1,20.3 12.5A1,1 0,0 1,18.9 11.1A9.5,9.5 0,0 0,18.9 1.9A1,1 0,0 1,18.9 0.5z"/>
+</vector>
