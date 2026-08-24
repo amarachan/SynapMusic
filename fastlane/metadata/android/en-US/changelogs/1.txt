@@ -1,0 +1,3 @@
+* Initial development prototype
+* Core audio playback engine and background service
+* Basic notification controls and media session setup

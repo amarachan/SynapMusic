@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Legacy banner implementation for older Android TV versions.
+    This references the PNG converted from the original icon-image.svg asset.
+-->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_banner_image"
+    android:gravity="center" />
