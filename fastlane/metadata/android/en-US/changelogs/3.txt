@@ -1,0 +1,3 @@
+* Added local database for user library
+* Initial favorites and liked tracks collection
+* Basic play count and listening history tracking
