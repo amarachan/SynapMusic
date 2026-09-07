@@ -1,0 +1,3 @@
+* Added search suggestions and query history
+* Basic 5-band Equalizer and Bass Boost controls
+* Fixed search results pagination when scrolling long lists
