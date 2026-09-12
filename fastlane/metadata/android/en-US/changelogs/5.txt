@@ -1,0 +1,3 @@
+* Added custom user playlists creation and editing
+* Added playback speed and pitch adjustments
+* Fixed background service getting killed on aggressive battery saver modes
