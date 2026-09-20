@@ -1,0 +1,3 @@
+* Added Sleep Timer with smooth volume fade-out
+* Added local database backup and restore for playlists and stats
+* Fixed app crash when attempting to parse malformed track URLs
