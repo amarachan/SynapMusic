@@ -1,0 +1,3 @@
+* Added audio streaming quality options (High, Medium, Data Saver)
+* Added pure black AMOLED dark theme option
+* UI polish and pre-release stability improvements
