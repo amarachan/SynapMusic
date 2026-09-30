@@ -1,0 +1,4 @@
+* Added dedicated Artist and Album pages with structured library relationships
+* Refactored artist and album database storage for faster metadata loading
+* Improved queue reordering and song navigation
+* Enhanced audio stream buffering and playback stability
