@@ -1,0 +1,8 @@
+* 'Offline' (renamed from Cached) playlist is now displayed when expanding the playlist grid
+* Moved Sleep Timer shortcut into the playing song menu
+* Search bar now directly supports pasting playlist links
+* Fixed 200 song limit issue when importing large playlists
+* Added audio bitrate display to Stats for Nerds
+* Stats for Nerds now refresh immediately when skipping tracks
+* Added song sorting by title, duration, and date added
+* Added playlist sorting by name, song count, and date
