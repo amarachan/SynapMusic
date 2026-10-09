@@ -1,0 +1,6 @@
+* Start radio mix directly from the playing song
+* Added queue shuffle button
+* Swipe down or dismiss mini-player to stop playback
+* Automatically expand full player when starting a new queue or tapping playback notification
+* Improved playback support for age-restricted songs
+* Redesigned player and settings interface
