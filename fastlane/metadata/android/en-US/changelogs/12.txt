@@ -1,0 +1,3 @@
+* Dynamic theme that adapts colors based on the current album art
+* Added synchronized lyrics support
+* Option to display album cover art on the lockscreen
