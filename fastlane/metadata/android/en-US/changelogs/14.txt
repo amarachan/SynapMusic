@@ -1,0 +1,1 @@
+* Auto-scroll while reordering queue or playlist songs
