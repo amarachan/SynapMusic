@@ -1,0 +1,10 @@
+* Refreshed user interface
+* Added "Discover", "Albums", and "Artists" tabs to the home screen
+* Added "Songs", "Albums", and "Singles" tabs to the artist screen
+* Added "Other versions" section to the album screen
+* Added bookmarking for albums and artists
+* Added "Library" tab to the search screen
+* Simplified playback loop controls
+* Imported playlists can now be synchronized
+* Support for opening artist and channel share links
+* Opening a song link now automatically starts playback
