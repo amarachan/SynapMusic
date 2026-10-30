@@ -1,0 +1,6 @@
+* SynapMusic v1.0.0 Initial Release
+* High-performance YouTube Music streaming and local phone storage scanner
+* Offline Vault audio transcoding engine (Opus, AAC, FLAC, WavPack)
+* Dual Equalizer & DSP mastering with 5-band frequency tuning and 3D Surround
+* Real-time karaoke lyrics with 15-language auto-translation
+* Portable encrypted SynapCube (.synapcube) library backup and restore engine
