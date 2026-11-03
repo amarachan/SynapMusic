@@ -1,0 +1,5 @@
+* Added Android Auto support (can be enabled in Settings)
+* Improved audio volume normalization
+* Fixed incorrect song duration calculation
+* Fixed sorting issues with artists and albums
+* Fixed occasional crash during search
