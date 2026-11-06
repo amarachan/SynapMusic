@@ -1,0 +1,6 @@
+* Added option to pause search history
+* Added option to clear trending songs
+* Added artist descriptions
+* Fixed missing artist names showing as 'Unknown'
+* Fixed Discover feed failing to load
+* Fixed notification playback controls on Android 8.0 and below
