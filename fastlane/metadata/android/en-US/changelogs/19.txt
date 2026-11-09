@@ -1,0 +1,6 @@
+* Official Android 13 support and themed app icon
+* Added queue loop toggle button
+* Added option to use system font
+* Auto-resume playback when connecting wired headphones or Bluetooth
+* Keep screen awake while displaying synchronized lyrics
+* Bug fixes and stability improvements
