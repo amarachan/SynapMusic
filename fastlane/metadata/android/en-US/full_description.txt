@@ -1,0 +1,17 @@
+SynapMusic is a high-performance Android music player for offline music storage and YouTube Music streaming.
+
+Features:
+* Online YouTube Music streaming with 5 search tabs (Songs, Albums, Artists, Videos, Playlists)
+* The DEN Lair tab featuring custom Playlists, Local Phone Storage Scanner, Smart Mixes, Synap Recap, and Import Portals
+* Local Phone Storage Scanner for .mp3, .flac, .wav, .m4a, .opus, and .ogg audio files
+* Offline Vault storage with bit-perfect audio transcoding (FLAC, WavPack, Opus, AAC)
+* ID3 Audio Tag and Album Cover Artwork Editor
+* Portable library backups with encrypted SynapCube (.synapcube) archives
+* In-app 5-band Graphic Equalizer, hardware Bass Boost, 3D Surround, Spatial Mastering, and Loudness Normalization
+* Multi-provider synchronized lyrics (LRCLIB, SkyLyrics, YouTube) with 15-language Google Auto-Translation
+* Live global FM/AM radio browser via RadioBrowser API
+* Ambient music recognition ("Shazam" mode) via AudD
+* SponsorBlock API integration for skipping video chatter, intros, outros, and sponsorships
+* Dynamic HSL album artwork color palette extraction and custom color themes (AMOLED, Nord, Dracula, Catppuccin, Tokyo Night)
+* Background playback, Android Auto, Discord Rich Presence, and sleep timer
+* 100% free and open-source under GPL v3.0 with zero ads or tracking
