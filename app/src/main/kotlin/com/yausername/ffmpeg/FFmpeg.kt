@@ -1,12 +1,15 @@
 package com.yausername.ffmpeg
 
 import android.content.Context
+import android.system.Os
+import android.util.Log
 import com.yausername.youtubedl_android.YoutubeDLException
 import java.io.File
 import java.util.zip.ZipFile
 
 class FFmpeg {
     companion object {
+        private const val TAG = "FFmpeg"
         private val instance = FFmpeg()
         @JvmStatic
         fun getInstance() = instance
@@ -41,6 +44,7 @@ class FFmpeg {
             ffmpegDir.mkdirs()
             try {
                 unzip(ffmpegLib, ffmpegDir)
+                restoreSymlinks(ffmpegDir)
             } catch (e: Exception) {
                 deleteRecursive(ffmpegDir)
                 throw YoutubeDLException("failed to initialize ffmpeg", e)
@@ -70,6 +74,35 @@ class FFmpeg {
                             input.copyTo(output)
                         }
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * ZipFile extracts symlink entries as small plain text files containing the target filename.
+     * On Linux/Android, the dynamic linker requires real symlinks (or ELF file copies).
+     */
+    private fun restoreSymlinks(directory: File) {
+        val libDir = File(directory, "usr/lib")
+        if (!libDir.exists() || !libDir.isDirectory) return
+
+        libDir.listFiles()?.forEach { file ->
+            if (file.isFile && file.length() in 1..100) {
+                try {
+                    val targetName = file.readText().trim()
+                    val targetFile = File(libDir, targetName)
+                    if (targetFile.exists() && targetFile.length() > 100) {
+                        file.delete()
+                        try {
+                            Os.symlink(targetName, file.absolutePath)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Os.symlink failed, falling back to copy", e)
+                            targetFile.copyTo(file, overwrite = true)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to resolve symlink for ${file.name}", e)
                 }
             }
         }
