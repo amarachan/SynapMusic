@@ -63,7 +63,7 @@ object MediaFetchUtils {
         if (engine != null) {
             val extension = CompressionManager.getExtension(engine)
             val targetFile = File(getAudioDir(context), "$videoId.$extension")
-            if (targetFile.exists() && targetFile.length() > 0) return targetFile
+            if ((targetFile.exists()) && (targetFile.length() > 0)) return targetFile
             return targetFile
         }
 
@@ -71,7 +71,7 @@ object MediaFetchUtils {
         val possibleExtensions = listOf("mkv", "flac", "m4a", "opus", "mp3", "ogg", "wv")
         for (ext in possibleExtensions) {
             val file = File(getAudioDir(context), "$videoId.$ext")
-            if (file.exists() && file.length() > 0) return file
+            if (file.exists() && (file.length() > 0)) return file
         }
         
         // 2. If it's a new download, figure out what the file extension SHOULD be.
@@ -86,13 +86,16 @@ object MediaFetchUtils {
      * Fetches a direct, high-quality streaming URL for immediate playback.
      */
     suspend fun getStreamingUrl(context: Context, videoId: String, isVideo: Boolean): String? = withContext(Dispatchers.IO) {
-        val decision = CompressionManager.evaluateSmartDecision(context, CompressionManager.TaskType.Streaming)
+        if (videoId.startsWith("local:") || videoId.startsWith("webdav:") || videoId.startsWith("radio:")) {
+            return@withContext null
+        }
+        val (networkFormatOption) = CompressionManager.evaluateSmartDecision(context, CompressionManager.TaskType.Streaming)
         val request = YoutubeDLRequest("https://www.youtube.com/watch?v=$videoId")
 
         if (isVideo) {
             request.addOption("-f", "bestvideo[height<=720]+bestaudio/best[height<=720]")
         } else {
-            request.addOption("-f", decision.networkFormatOption)
+            request.addOption("-f", networkFormatOption)
         }
         request.addOption("-g") // "-g" tells yt-dlp to just output the URL.
         request.addCommonOptions()
@@ -100,7 +103,7 @@ object MediaFetchUtils {
         try {
             val response = YoutubeDL.getInstance().execute(request, null)
             val url = response.out.lines().firstOrNull { it.startsWith("http") }
-            if (url != null) return@withContext url
+            url?.let { return@withContext it }
         } catch (e: Exception) {
             Log.e(TAG, "YoutubeDL failed to get streaming URL for $videoId", e)
         }
@@ -125,6 +128,10 @@ object MediaFetchUtils {
      */
     suspend fun downloadMedia(context: Context, mediaItem: MediaItem, isVideo: Boolean): Boolean = withContext(Dispatchers.IO) {
         val videoId = mediaItem.mediaId
+        if (videoId.startsWith("local:")) {
+            DownloadState.clearProgress(videoId)
+            return@withContext true
+        }
         
         // Show "..." right away so the user knows we're working on it. 
         // It takes a second for the actual download to start.
@@ -147,13 +154,13 @@ object MediaFetchUtils {
         }
 
         val preferredEngine = context.preferences.getEnum(compressionEngineKey, CompressionEngine.Auto)
-        var targetEngine = if (isVideo) null else CompressionManager.resolveEngine(context, preferredEngine)
+        val targetEngine = if (isVideo) null else CompressionManager.resolveEngine(context, preferredEngine)
         var outputFile = getAudioFile(context, videoId, isVideo, targetEngine)
         
         // Instant Feedback: Add it to the DB immediately as a "pending" item.
         registerInVault(videoId, finalMediaItem, outputFile, targetEngine, isVideo, isPlaceholder = true)
 
-        if (outputFile.exists() && outputFile.length() > 0) {
+        if (outputFile.exists() && (outputFile.length() > 0)) {
              Log.d(TAG, "Vault file already exists for $videoId. Re-registering...")
              registerInVault(videoId, finalMediaItem, outputFile, targetEngine, isVideo)
              return@withContext true
@@ -194,10 +201,10 @@ object MediaFetchUtils {
                 var success = false
                 if (response.exitCode == 0) {
                     if (isVideo) {
-                        success = outputFile.exists() && outputFile.length() > 0
+                        success = outputFile.exists() && (outputFile.length() > 0)
                     } else {
                         val downloadedFile = tempDir.listFiles()?.firstOrNull { it.isFile }
-                        if (downloadedFile != null && downloadedFile.exists()) {
+                        if (downloadedFile?.exists() == true) {
                             Log.d(TAG, "Download Success. Encoding $videoId to $targetEngine...")
                             
                             val ffmpegArgs = mutableListOf<String>()
@@ -208,7 +215,7 @@ object MediaFetchUtils {
                             var ffmpegResponse = CompressionManager.executeFFmpeg(context, ffmpegArgs.toTypedArray())
                             
                             // Encoder fallback: If native 'opus' failed, try 'libopus' (and vice versa)
-                            if (ffmpegResponse != 0 && targetEngine.name.startsWith("Opus")) {
+                            if ((ffmpegResponse != 0) && targetEngine.name.startsWith("Opus")) {
                                  Log.w(TAG, "Primary FFmpeg opus encoder failed (Code $ffmpegResponse). Attempting fallback opus encoder.")
                                  val opusBitrate = when (targetEngine) {
                                      CompressionEngine.Opus64 -> "64k"
@@ -219,7 +226,7 @@ object MediaFetchUtils {
                                      CompressionEngine.Opus510 -> "510k"
                                      else -> "128k"
                                  }
-                                 val fallbackArgs = arrayOf("-y", "-i", downloadedFile.absolutePath, "-c:a", "libopus", "-b:a", opusBitrate, outputFile.absolutePath)
+                                 val fallbackArgs = arrayOf("-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "libopus", "-b:a", opusBitrate, outputFile.absolutePath)
                                  ffmpegResponse = CompressionManager.executeFFmpeg(context, fallbackArgs)
                             }
 
@@ -229,12 +236,12 @@ object MediaFetchUtils {
                              * we try a raw stream copy. If THAT fails, we do a pure Kotlin 
                              * file copy. We never want to lose your download.
                              */
-                            if (ffmpegResponse == 139 || ffmpegResponse != 0) {
+                            if (ffmpegResponse != 0) {
                                  Log.w(TAG, "FFmpeg failed (Code $ffmpegResponse). Attempting copy fallback.")
-                                 val fallbackArgs = arrayOf("-y", "-i", downloadedFile.absolutePath, "-c:a", "copy", outputFile.absolutePath)
+                                 val fallbackArgs = arrayOf("-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "copy", outputFile.absolutePath)
                                  val fallbackResponse = CompressionManager.executeFFmpeg(context, fallbackArgs)
                                  
-                                 if (fallbackResponse == 0 && outputFile.exists() && outputFile.length() > 0) {
+                                 if ((fallbackResponse == 0) && outputFile.exists() && (outputFile.length() > 0)) {
                                      success = true
                                      Log.d(TAG, "FFmpeg copy fallback success")
                                  } else {
@@ -243,7 +250,7 @@ object MediaFetchUtils {
                                          val trueContainerFile = File(outputFile.parentFile, "$videoId.${downloadedFile.extension}")
                                          downloadedFile.copyTo(trueContainerFile, overwrite = true)
                                          outputFile = trueContainerFile
-                                         success = trueContainerFile.exists() && trueContainerFile.length() > 0
+                                         success = trueContainerFile.exists() && (trueContainerFile.length() > 0)
                                          Log.d(TAG, "Pure Kotlin copy success as ${trueContainerFile.name}")
                                      } catch (e: Exception) {
                                          Log.e(TAG, "Pure Kotlin copy failed", e)
@@ -251,7 +258,7 @@ object MediaFetchUtils {
                                      }
                                  }
                             } else {
-                                 success = outputFile.exists() && outputFile.length() > 0
+                                 success = outputFile.exists() && (outputFile.length() > 0)
                             }
                         }
                     }
@@ -291,10 +298,17 @@ object MediaFetchUtils {
      * We trigger a manual "refresh" to make sure the library UI updates 
      * instantly without a flicker.
      */
-    private fun registerInVault(videoId: String, mediaItem: MediaItem, outputFile: File, targetEngine: CompressionEngine?, isVideo: Boolean, isPlaceholder: Boolean = false) {
+    private fun registerInVault(
+        videoId: String,
+        mediaItem: MediaItem,
+        outputFile: File,
+        targetEngine: CompressionEngine?,
+        isVideo: Boolean,
+        isPlaceholder: Boolean = false,
+    ) {
         val size = if (isPlaceholder) 0L else outputFile.length()
         
-        if (size <= 0 && !isPlaceholder) {
+        if ((size <= 0) && (!isPlaceholder)) {
             Log.e(TAG, "Vault Registration Failed: File size is 0 for $videoId")
             return
         }
@@ -306,7 +320,7 @@ object MediaFetchUtils {
                 songId = videoId,
                 contentLength = size,
                 mimeType = if (isVideo) "video/mp4" else "audio/${outputFile.extension}",
-                compressionEngine = targetEngine
+                compressionEngine = targetEngine,
             )
             Database.upsert(format)
             Database.checkpoint()
