@@ -19,13 +19,14 @@ import java.io.File
  */
 class OptimizationWorker(
     private val context: Context,
-    workerParams: WorkerParameters
+    workerParams: WorkerParameters,
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
         private const val TAG = "OptimizationWorker"
     }
 
+    @Suppress("DestructureDeclaration")
     override suspend fun doWork(): Result {
         Log.d(TAG, "Starting optimization pass...")
         
@@ -39,16 +40,15 @@ class OptimizationWorker(
         // 2. Figure out the "Ideal" format for right now (e.g. storage might be low).
         val targetEngine = CompressionManager.resolveEngine(context, CompressionEngine.Auto)
         
-        for (song in songs) {
-            val currentFormat = Database.format(song.id).first() ?: continue
-            val currentEngine = currentFormat.compressionEngine ?: CompressionEngine.FLAC
+        for ((songId) in songs) {
+            val currentEngine = (Database.format(songId).first() ?: continue).compressionEngine ?: CompressionEngine.FLAC
             
             // 3. If a song is stored in a "worse" format than our ideal, re-transcode it.
             if (shouldRecompress(currentEngine, targetEngine)) {
                 try {
-                    recompress(song.id, currentEngine, targetEngine)
+                    recompress(songId, currentEngine, targetEngine)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to recompress ${song.id}", e)
+                    Log.e(TAG, "Failed to recompress $songId", e)
                 }
             }
         }
@@ -65,7 +65,7 @@ class OptimizationWorker(
         val priorityMap = mapOf(
             CompressionEngine.FLAC to 0,
             CompressionEngine.WavPack to 1,
-            CompressionEngine.AAC to 2
+            CompressionEngine.AAC to 2,
         )
 
         val currentPriority = priorityMap[current] ?: 0
@@ -95,15 +95,15 @@ class OptimizationWorker(
 
         val result = CompressionManager.executeFFmpeg(context, args.toTypedArray())
         
-        if (result == 0 && outputFile.exists()) {
+        if ((result == 0) && outputFile.exists()) {
             val finalOutputFile = File(vaultDir, "$songId.${CompressionManager.getExtension(to)}")
             outputFile.renameTo(finalOutputFile)
             inputFile.delete() // Cleanup the old, less efficient file.
             
             // Update the DB so the app knows the file has a new format.
             val format = Database.format(songId).first()
-            if (format != null) {
-                Database.upsert(format.copy(compressionEngine = to))
+            format?.let {
+                Database.upsert(it.copy(compressionEngine = to))
             }
             Log.d(TAG, "Successfully recompressed $songId from $from to $to")
         }

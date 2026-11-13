@@ -17,12 +17,14 @@ enum class CompressionEngine(val label: String, val subtitle: String) {
     L3AC("L3AC", "Audiophile Hi-Res WavPack (~1000-1300 kbps, 24-bit/48kHz)"),
     SAC("SAC", "Super Audio Hi-Res WavPack (~1100-1400 kbps, 24-bit/48kHz)");
 
+    @Suppress("unused")
     val isLossless: Boolean
         get() = when (this) {
             Auto, FLAC, WavPack, L3AC, SQZ, SLAC, SAC -> true
             AAC, AAC192, Opus, Opus64, Opus92, Opus192, Opus256, Opus510 -> false
         }
 
+    @Suppress("unused")
     val badgeText: String?
         get() = badgeCodecText
 
