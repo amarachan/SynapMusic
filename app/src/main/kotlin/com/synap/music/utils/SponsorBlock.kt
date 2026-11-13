@@ -6,17 +6,19 @@ import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import android.util.Log
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.encodeToString
 
 @Serializable
 data class SponsorBlockSegment(
     val category: String,
     val segment: List<Float>,
-    val UUID: String
+    @SerialName("UUID")
+    val uuid: String,
 ) {
     val start: Long get() = (segment[0] * 1000).toLong()
     val end: Long get() = (segment[1] * 1000).toLong()
@@ -48,13 +50,16 @@ object SponsorBlock {
         "outro",
         "interaction",
         "selfpromo",
-        "music_offtopic" // Very useful for skipping talking in music videos.
+        "music_offtopic", // Very useful for skipping talking in music videos.
     )
 
     /**
      * Queries the API for skip segments associated with a YouTube Video ID.
      */
     suspend fun getSegments(videoId: String): List<SponsorBlockSegment> {
+        if (videoId.startsWith("local:") || videoId.startsWith("webdav:") || videoId.startsWith("radio:")) {
+            return emptyList()
+        }
         return try {
             val url = "https://sponsor.ajay.app/api/skipSegments"
             val response: List<SponsorBlockSegment> = client.get(url) {

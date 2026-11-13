@@ -100,6 +100,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import com.synap.music.models.Event
 import com.synap.music.models.QueuedMediaItem
 import com.synap.music.query
+import com.synap.music.scanner.LocalFolderScanner
 import com.synap.music.utils.InvincibleService
 import com.synap.music.utils.RingBuffer
 import kotlinx.coroutines.delay
@@ -173,7 +174,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                     or PlaybackState.ACTION_SKIP_TO_NEXT
                     or PlaybackState.ACTION_SKIP_TO_QUEUE_ITEM
                     or PlaybackState.ACTION_SEEK_TO
-                    or PlaybackState.ACTION_REWIND
+                    or PlaybackState.ACTION_REWIND,
         )
 
     private val metadataBuilder = MediaMetadata.Builder()
@@ -230,10 +231,9 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         bitmapProvider = BitmapProvider(
             context = this,
             bitmapSize = (256 * resources.displayMetrics.density).roundToInt(),
-            colorProvider = { isSystemInDarkMode ->
-                if (isSystemInDarkMode) Color.BLACK else Color.WHITE
-            }
-        )
+        ) { isSystemInDarkMode ->
+            if (isSystemInDarkMode) Color.BLACK else Color.WHITE
+        }
 
         createNotificationChannel()
 
@@ -261,7 +261,8 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
             directory.mkdir()
 
             cacheDir.listFiles()?.forEach { file ->
-                if (file.isDirectory && file.name.length == 1 && file.name.isDigitsOnly() || file.extension == "uid") {
+                val isLegacyChunk = file.isDirectory && (file.name.length == 1) && file.name.isDigitsOnly()
+                if (isLegacyChunk || (file.extension == "uid")) {
                     if (!file.renameTo(directory.resolve(file.name))) {
                         file.deleteRecursively()
                     }
@@ -281,7 +282,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                     .setUsage(C.USAGE_MEDIA)
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                     .build(),
-                true
+                true,
             )
             .setUsePlatformDiagnostics(false)
             .build()
@@ -362,7 +363,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
-        if (bitmapProvider.setDefaultBitmap() && player.currentMediaItem != null) {
+        if (bitmapProvider.setDefaultBitmap() && (player.currentMediaItem != null)) {
             notificationManager?.notify(NOTIFICATION_ID, notification() ?: return)
         }
         super.onConfigurationChanged(newConfig)
@@ -370,7 +371,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
     override fun onPlaybackStatsReady(
         eventTime: AnalyticsListener.EventTime,
-        playbackStats: PlaybackStats
+        playbackStats: PlaybackStats,
     ) {
         // Track play counts. We only count it as a "play" if you listened for at least 5 seconds.
         val mediaItem =
@@ -392,8 +393,8 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                         Event(
                             songId = mediaItem.mediaId,
                             timestamp = System.currentTimeMillis(),
-                            playTime = totalPlayTimeMs
-                        )
+                            playTime = totalPlayTimeMs,
+                        ),
                     )
                 } catch (_: SQLException) {
                 }
@@ -454,7 +455,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
             bitmapProvider.listener?.invoke(bitmapProvider.lastBitmap)
         }
 
-        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO || reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK) {
+        if ((reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) || (reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK)) {
             updateMediaSessionQueue(player.currentTimeline)
         }
         
@@ -542,7 +543,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         startIndex = startIndex.coerceAtLeast(0)
 
         mediaSession.setQueue(
-            List(endIndex - startIndex + 1) { index ->
+            List((endIndex - startIndex) + 1) { index ->
                 val mediaItem = timeline.getWindow(index + startIndex, Timeline.Window()).mediaItem
                 MediaSession.QueueItem(
                     builder
@@ -551,9 +552,9 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                         .setSubtitle(mediaItem.mediaMetadata.artist)
                         .setIconUri(mediaItem.mediaMetadata.artworkUri)
                         .build(),
-                    (index + startIndex).toLong()
+                    (index + startIndex).toLong(),
                 )
-            }
+            },
         )
     }
 
@@ -718,13 +719,13 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
             if (shouldBePlaying && duration > 0 && position < duration) {
                 val segmentToSkip = skipSegments.find {
-                    it.UUID !in skippedUUIDs &&
+                    it.uuid !in skippedUUIDs &&
                     position >= (it.start - 200L) &&
                     position < (it.end - 100L) &&
                     it.end < (duration - 1500L)
                 }
                 if (segmentToSkip != null) {
-                    skippedUUIDs.add(segmentToSkip.UUID)
+                    skippedUUIDs.add(segmentToSkip.uuid)
                     withContext(Dispatchers.Main) {
                         player.seekTo(segmentToSkip.end + 100L)
                     }
@@ -842,7 +843,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
             if (notification == null) {
                 isNotificationStarted = false
-                makeInvincible(false)
+                makeInvincible(isInvincible = false)
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 sendCloseEqualizerIntent()
                 notificationManager?.cancel(NOTIFICATION_ID)
@@ -854,7 +855,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                     startForegroundService(this@PlayerService, intent<PlayerService>())
                     startForeground(NOTIFICATION_ID, notification)
                     isNotificationStarted = true
-                    makeInvincible(false)
+                    makeInvincible(isInvincible = false)
                     sendOpenEqualizerIntent()
                 } catch (_: Exception) {
                     isNotificationStarted = false
@@ -863,7 +864,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                 if (!player.shouldBePlaying) {
                     isNotificationStarted = false
                     stopForeground(STOP_FOREGROUND_DETACH)
-                    makeInvincible(true)
+                    makeInvincible(isInvincible = true)
                     sendCloseEqualizerIntent()
                 }
                 notificationManager?.notify(NOTIFICATION_ID, notification)
@@ -935,14 +936,17 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
             .setAutoCancel(false)
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
-            .setSmallIcon(player.playerError?.let { R.drawable.alert_circle }
-                ?: R.drawable.app_icon)
+            .setSmallIcon(
+                player.playerError?.let { R.drawable.alert_circle } ?: R.drawable.app_icon
+            )
             .setOngoing(false)
-            .setContentIntent(activityPendingIntent<MainActivity>(
-                flags = PendingIntent.FLAG_UPDATE_CURRENT
-            ) {
-                putExtra("expandPlayerBottomSheet", true)
-            })
+            .setContentIntent(
+                activityPendingIntent<MainActivity>(
+                    flags = PendingIntent.FLAG_UPDATE_CURRENT,
+                ) {
+                    putExtra("expandPlayerBottomSheet", true)
+                },
+            )
             .setDeleteIntent(broadCastPendingIntent<NotificationDismissReceiver>())
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
@@ -1069,13 +1073,25 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                             .setConnectTimeoutMs(16000)
                             .setReadTimeoutMs(16000)
 
-                        if (authHeader != null) {
-                            httpFactory.setDefaultRequestProperties(mapOf("Authorization" to authHeader))
+                        authHeader?.let { header ->
+                            httpFactory.setDefaultRequestProperties(mapOf("Authorization" to header))
                         }
 
                         val ds = DefaultDataSource(service, httpFactory.createDataSource())
                         currentDataSource = ds
                         return ds.open(dataSpec.withUri(fileUrl.toUri()))
+                    }
+
+                    if (LocalFolderScanner.isLocalId(videoId)) {
+                        val localUri = LocalFolderScanner.resolveContentUri(service, videoId)
+                            ?: throw PlaybackException(
+                                "Local audio file not found on device: $videoId",
+                                null,
+                                PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND
+                            )
+                        val ds = defaultDataSourceFactory.createDataSource()
+                        currentDataSource = ds
+                        return ds.open(dataSpec.withUri(localUri))
                     }
 
                     val isVideo = isVideoMap[videoId] ?: false
@@ -1110,7 +1126,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                         }
                     }
 
-                    currentDataSource = if (resolvedDataSpec.uri.scheme == "file") {
+                    currentDataSource = if (resolvedDataSpec.uri.scheme == "file" || resolvedDataSpec.uri.scheme == "content") {
                         defaultDataSourceFactory.createDataSource()
                     } else {
                         cacheDataSourceFactory.createDataSource()
@@ -1237,7 +1253,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
         private var radioJob: Job? = null
 
-        var isLoadingRadio by mutableStateOf(false)
+        var isLoadingRadio by mutableStateOf(value = false)
             private set
 
         fun setBitmapListener(listener: ((Bitmap?) -> Unit)?) {

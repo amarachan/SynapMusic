@@ -11,9 +11,7 @@ import com.synap.pulse.SynapService
 import com.synap.pulse.models.bodies.ContinuationBody
 import com.synap.pulse.requests.playlistPage
 import com.synap.pulse.utils.plus
-import com.synap.music.Database
 import com.synap.music.models.Song
-import kotlinx.coroutines.runBlocking
 
 /**
  * This is our main conversion tool. It takes raw track data from the engine
@@ -23,10 +21,10 @@ import kotlinx.coroutines.runBlocking
 fun SynapService.SongItem.asMediaItem(
     albumIdOverride: String? = null,
     albumTitleOverride: String? = null,
-    albumThumbnailUrlOverride: String? = null
+    albumThumbnailUrlOverride: String? = null,
 ): MediaItem {
-    val artistNames = authors?.mapNotNull { it.name } ?: emptyList<String>()
-    val artistIds = authors?.mapNotNull { it.endpoint?.browseId } ?: emptyList<String>()
+    val artistNames = authors?.mapNotNull { (name) -> name } ?: emptyList()
+    val artistIds = authors?.mapNotNull { (_, endpoint) -> endpoint?.browseId } ?: emptyList()
     val albumTitle = albumTitleOverride ?: album?.name
     val albumId = albumIdOverride ?: album?.endpoint?.browseId
     val artworkUrl = albumThumbnailUrlOverride ?: thumbnail?.url
@@ -49,9 +47,9 @@ fun SynapService.SongItem.asMediaItem(
                         "artistNames" to ArrayList(artistNames),
                         "artistIds" to ArrayList(artistIds),
                         "artistThumbnailUrl" to artworkUrl,
-                    )
+                    ),
                 )
-                .build()
+                .build(),
         )
         .build()
 }
@@ -70,17 +68,17 @@ val SynapService.VideoItem.asMediaItem: MediaItem
         .setMediaMetadata(
             MediaMetadata.Builder()
                 .setTitle(info?.name)
-                .setArtist(authors?.joinToString(", ") { it.name ?: "" })
+                .setArtist(authors?.joinToString(", ") { (name) -> name ?: "" })
                 .setArtworkUri(thumbnail?.url?.thumbnail(512)?.toUri())
                 .setExtras(
                     bundleOf(
                         "isVideo" to true,
                         "durationText" to durationText,
-                        "artistNames" to ArrayList(authors?.mapNotNull { it.name } ?: emptyList<String>()),
-                        "artistIds" to ArrayList(authors?.mapNotNull { it.endpoint?.browseId } ?: emptyList<String>()),
-                    )
+                        "artistNames" to ArrayList(authors?.mapNotNull { (name) -> name } ?: emptyList()),
+                        "artistIds" to ArrayList(authors?.mapNotNull { (_, endpoint) -> endpoint?.browseId } ?: emptyList()),
+                    ),
                 )
-                .build()
+                .build(),
         )
         .build()
 
@@ -97,11 +95,11 @@ fun Song.asMediaItem(
     albumId: String? = null,
     albumTitle: String? = null,
     albumThumbnailUrl: String? = null,
-    artistIds: List<String>? = null
+    artistIds: List<String>? = null,
 ): MediaItem {
     val artworkUrl = thumbnailUrl 
         ?: albumThumbnailUrl 
-        ?: if (id.isNotBlank() && !id.startsWith("http")) "https://i.ytimg.com/vi/$id/hqdefault.jpg" else null
+        ?: if (id.isNotBlank() && !id.startsWith("http") && !id.startsWith("local:") && !id.startsWith("webdav:") && !id.startsWith("radio:")) "https://i.ytimg.com/vi/$id/hqdefault.jpg" else null
 
     return MediaItem.Builder()
         .setMediaMetadata(
@@ -116,10 +114,10 @@ fun Song.asMediaItem(
                         "durationText" to durationText,
                         "albumId" to albumId,
                         "albumThumbnailUrl" to (albumThumbnailUrl ?: artworkUrl),
-                        "artistIds" to (artistIds?.let { ArrayList(it) })
-                    )
+                        "artistIds" to (artistIds?.let { ArrayList(it) }),
+                    ),
                 )
-                .build()
+                .build(),
         )
         .setMediaId(id)
         .setUri(id)
@@ -229,6 +227,7 @@ suspend fun Result<SynapService.PlaylistOrAlbumPage>.completed(): Result<SynapSe
 }
 
 // Quick checks for Android version features.
+@Suppress("ObsoleteSdkInt")
 inline val isAtLeastAndroid6
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
 
