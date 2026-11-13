@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.synap.music.service
 
 import android.content.Context
@@ -17,9 +19,8 @@ import com.synap.music.utils.isAtLeastAndroid9
  * Manages audio DSP effects including Bass Boost, 3D Virtualization,
  * Dynamic Range Compression, and Auto-Genre Equalizer presets.
  */
-@Suppress("DEPRECATION")
 class AudioEnhancementManager(
-    audioSessionId: Int
+    audioSessionId: Int,
 ) {
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
@@ -33,17 +34,15 @@ class AudioEnhancementManager(
 
     init {
         // Initialize the Android Audio Effects system for this specific playback session.
-        try {
-            bassBoost = BassBoost(0, audioSessionId)
-            virtualizer = Virtualizer(0, audioSessionId)
-            equalizer = Equalizer(0, audioSessionId)
-            presetReverb = PresetReverb(0, audioSessionId)
-            loudnessEnhancer = LoudnessEnhancer(audioSessionId)
-            if (isAtLeastAndroid9) {
-                dynamicsProcessingManager = DynamicsProcessingManager(audioSessionId)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        // Guard each effect individually so unsupported hardware effects (e.g. PresetReverb on emulators)
+        // do not block other critical effects from initializing.
+        try { bassBoost = BassBoost(0, audioSessionId) } catch (_: Exception) {}
+        try { virtualizer = Virtualizer(0, audioSessionId) } catch (_: Exception) {}
+        try { equalizer = Equalizer(0, audioSessionId) } catch (_: Exception) {}
+        try { presetReverb = PresetReverb(0, audioSessionId) } catch (_: Exception) {}
+        try { loudnessEnhancer = LoudnessEnhancer(audioSessionId) } catch (_: Exception) {}
+        if (isAtLeastAndroid9) {
+            try { dynamicsProcessingManager = DynamicsProcessingManager(audioSessionId) } catch (_: Exception) {}
         }
     }
 
@@ -54,7 +53,7 @@ class AudioEnhancementManager(
      */
     fun isNativeSystemSpatializerActive(context: Context): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S_V2) {
-            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return false
+            val audioManager = (context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager) ?: return false
             val spatializer = audioManager.spatializer
             return spatializer.isAvailable && spatializer.isEnabled
         }
@@ -97,9 +96,9 @@ class AudioEnhancementManager(
     fun updateLoudnessTarget(
         target: LoudnessTarget,
         loudnessDb: Float? = null,
-        mediaItem: MediaItem? = currentMediaItem
+        mediaItem: MediaItem? = currentMediaItem,
     ) {
-        val baseGainMb = if (loudnessDb != null && loudnessDb != 0f) {
+        val baseGainMb = if ((loudnessDb != null) && (loudnessDb != 0f)) {
             -((loudnessDb) * 100).toInt() + 300
         } else {
             0
@@ -137,7 +136,7 @@ class AudioEnhancementManager(
      * Blends cross-channel audio into the virtualizer to reduce hard-panned stereo listening fatigue.
      */
     fun updateCrossfeed(enabled: Boolean) {
-        if (enabled && virtualizer?.enabled == false) {
+        if (enabled && (virtualizer?.enabled == false)) {
             virtualizer?.let {
                 it.enabled = true
                 it.setStrength(350) // 35% natural crossfeed blending
@@ -189,7 +188,11 @@ class AudioEnhancementManager(
             applySurround71()
             return
         }
-        if (title.contains("360") || title.contains("8d") || title.contains("ambisonic") || title.contains("spatial")) {
+        if (title.contains("ambisonic")) {
+            applyAmbisonics()
+            return
+        }
+        if (title.contains("360") || title.contains("8d") || title.contains("spatial")) {
             applySpatialAudio()
             return
         }
@@ -303,6 +306,7 @@ class AudioEnhancementManager(
         }
     }
 
+    @Suppress("unused")
     private fun applyBassBoost() {
         bassBoost?.let {
             it.enabled = true
@@ -385,6 +389,7 @@ class AudioEnhancementManager(
         }
     }
 
+    @Suppress("unused")
     fun getHardwareEqualizer(): Equalizer? = equalizer
 
     fun applyCustomEQ(bandLevels: ShortArray) {
@@ -425,6 +430,7 @@ class AudioEnhancementManager(
         }
     }
 
+    @Suppress("unused")
     fun applyReverbPreset(presetShort: Short) {
         try {
             val rev = presetReverb ?: return
