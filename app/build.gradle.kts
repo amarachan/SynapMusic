@@ -31,8 +31,10 @@ android {
 
     packaging {
         jniLibs {
-            // Uncompressed page-aligned native library packaging required for Android 15+ 16 KB page size support
-            useLegacyPackaging = false
+            useLegacyPackaging = true
+            pickFirsts += listOf(
+                "lib/**/libffmpeg.so"
+            )
         }
     }
 
