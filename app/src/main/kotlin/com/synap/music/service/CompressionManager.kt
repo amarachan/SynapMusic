@@ -18,7 +18,7 @@ import com.synap.music.utils.audioQualityKey
 import com.synap.music.utils.compressionEngineKey
 import com.synap.music.utils.getEnum
 import com.synap.music.utils.preferences
-import com.yausername.ffmpeg.FFmpeg
+import com.synap.music.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -37,7 +37,7 @@ object CompressionManager {
         val batteryPct: Float,
         val ramGb: Float,
         val cpuCores: Int,
-        val gigaBytesAvailable: Long
+        val gigaBytesAvailable: Long,
     )
 
     /**
@@ -72,10 +72,9 @@ object CompressionManager {
     enum class TaskType {
         Streaming,
         VaultDownload,
-        BackgroundJob
     }
 
-    data class ContextualScenario(
+    class ContextualScenario(
         val isWifi: Boolean,
         val isMetered: Boolean,
         val isRoaming: Boolean,
@@ -84,13 +83,13 @@ object CompressionManager {
         val isPowerSaveMode: Boolean,
         val freeStorageGb: Long,
         val ramGb: Float,
-        val cpuCores: Int
+        val cpuCores: Int,
     )
 
     data class SmartAudioDecision(
         val networkFormatOption: String,
         val compressionEngine: CompressionEngine,
-        val scenarioName: String
+        val scenarioName: String,
     )
 
     /**
@@ -114,7 +113,7 @@ object CompressionManager {
         // Power & Battery
         val batteryStatus = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         val status = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
-        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+        val isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING) || (status == BatteryManager.BATTERY_STATUS_FULL)
         val level = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: 100
         val scale = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: 100
         val batteryPct = (level / scale.toFloat()) * 100
@@ -123,7 +122,7 @@ object CompressionManager {
         val isPowerSaveMode = powerManager?.isPowerSaveMode == true
 
         // Hardware Specs
-        val profile = getDeviceProfile(context)
+        val (_, ramGb, cpuCores, gigaBytesAvailable) = getDeviceProfile(context)
 
         return ContextualScenario(
             isWifi = isWifi,
@@ -132,9 +131,9 @@ object CompressionManager {
             isCharging = isCharging,
             batteryPct = batteryPct,
             isPowerSaveMode = isPowerSaveMode,
-            freeStorageGb = profile.gigaBytesAvailable,
-            ramGb = profile.ramGb,
-            cpuCores = profile.cpuCores
+            freeStorageGb = gigaBytesAvailable,
+            ramGb = ramGb,
+            cpuCores = cpuCores,
         )
     }
 
@@ -144,7 +143,7 @@ object CompressionManager {
      */
     fun evaluateSmartDecision(
         context: Context,
-        taskType: TaskType = TaskType.VaultDownload
+        @Suppress("UNUSED_PARAMETER") taskType: TaskType = TaskType.VaultDownload,
     ): SmartAudioDecision {
         val preferredQuality = context.preferences.getEnum(audioQualityKey, AudioQuality.Auto)
         val preferredEngine = context.preferences.getEnum(compressionEngineKey, CompressionEngine.Auto)
@@ -166,11 +165,11 @@ object CompressionManager {
         } else {
             when {
                 // Emergency or Roaming: Low Quality Data Saver (64k)
-                scenario.isRoaming || scenario.isPowerSaveMode || scenario.batteryPct < 15f -> {
+                (scenario.isRoaming || scenario.isPowerSaveMode || (scenario.batteryPct < 15f)) -> {
                     "bestaudio[abr<=64]/ba[abr<=64]/bestaudio/best"
                 }
                 // Cellular / Metered Data: Normal Data Saver (128k)
-                scenario.isMetered || !scenario.isWifi -> {
+                (scenario.isMetered || (!scenario.isWifi)) -> {
                     "bestaudio[abr<=128]/ba[abr<=128]/bestaudio/best"
                 }
                 // Wi-Fi: Unrestricted High Quality
@@ -184,7 +183,7 @@ object CompressionManager {
         } else {
             when {
                 // Low Battery / Power Save Mode: Use Opus for fast, zero-transcode power saving & 85% storage reduction
-                scenario.batteryPct < 15f || scenario.isPowerSaveMode -> CompressionEngine.Opus
+                (scenario.batteryPct < 15f) || scenario.isPowerSaveMode -> CompressionEngine.Opus
 
                 // Storage Critical (< 3 GB): Use AAC for minimal file size footprint
                 scenario.freeStorageGb < 3 -> CompressionEngine.AAC
@@ -193,10 +192,10 @@ object CompressionManager {
                 scenario.freeStorageGb < 8 -> CompressionEngine.Opus
 
                 // High-End Device & Charging / Unlimited: Use SAC/WavPack
-                scenario.isCharging && scenario.ramGb >= 6f && scenario.cpuCores >= 8 -> CompressionEngine.SAC
+                scenario.isCharging && (scenario.ramGb >= 6f) && (scenario.cpuCores >= 8) -> CompressionEngine.SAC
 
                 // High Performance Hardware: Use SQZ (FLAC Level 8 max compression)
-                scenario.ramGb >= 6f && scenario.cpuCores >= 6 -> CompressionEngine.SQZ
+                (scenario.ramGb >= 6f) && (scenario.cpuCores >= 6) -> CompressionEngine.SQZ
 
                 // Standard Mid-Range Device: Use WavPack
                 else -> CompressionEngine.WavPack
@@ -204,7 +203,7 @@ object CompressionManager {
         }
 
         val scenarioName = when {
-            scenario.isPowerSaveMode || scenario.batteryPct < 15f -> "Power Saver"
+            scenario.isPowerSaveMode || (scenario.batteryPct < 15f) -> "Power Saver"
             scenario.isRoaming -> "Roaming Data Saver"
             scenario.isMetered || !scenario.isWifi -> "Cellular Data Saver"
             scenario.isCharging -> "High Performance (Charging)"
@@ -222,21 +221,23 @@ object CompressionManager {
     }
 
     fun applyToRequest(context: Context, request: YoutubeDLRequest, engine: CompressionEngine) {
-        val decision = evaluateSmartDecision(context, TaskType.VaultDownload)
+        val (networkFormatOption) = evaluateSmartDecision(context, TaskType.VaultDownload)
         if (engine.name.startsWith("Opus")) {
-            request.addOption("-f", "bestaudio[ext=webm]/bestaudio[acodec=opus]/ba[acodec=opus]/${decision.networkFormatOption}")
+            request.addOption("-f", "bestaudio[ext=webm]/bestaudio[acodec=opus]/ba[acodec=opus]/$networkFormatOption")
         } else if (engine.name.startsWith("AAC")) {
-            request.addOption("-f", "bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/ba[acodec=mp4a]/${decision.networkFormatOption}")
+            request.addOption("-f", "bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/ba[acodec=mp4a]/$networkFormatOption")
         } else {
-            request.addOption("-f", decision.networkFormatOption)
+            request.addOption("-f", networkFormatOption)
         }
     }
 
     /**
      * Technical mapping of our custom engine names to actual FFmpeg CLI commands.
+     * Always prepends "-vn" so that embedded/associated video streams are discarded
+     * for pure audio transcoding.
      */
     fun getFFmpegArgs(engine: CompressionEngine): List<String> {
-        return when (engine) {
+        val codecArgs = when (engine) {
             CompressionEngine.FLAC -> listOf("-c:a", "flac")
             CompressionEngine.WavPack -> listOf("-c:a", "wavpack")
             CompressionEngine.AAC -> listOf("-c:a", "aac", "-b:a", "256k")
@@ -253,6 +254,7 @@ object CompressionManager {
             CompressionEngine.SAC -> listOf("-c:a", "wavpack")
             else -> listOf("-c:a", "flac")
         }
+        return listOf("-vn") + codecArgs
     }
 
     /**
@@ -271,26 +273,41 @@ object CompressionManager {
         val baseDir = File(context.noBackupFilesDir, "youtubedl-android")
         val packagesDir = File(baseDir, "packages")
         val ffmpegDir = File(packagesDir, "ffmpeg")
+        val pythonDir = File(packagesDir, "python")
         val binDir = File(context.applicationInfo.nativeLibraryDir)
-        
-        // Priority 1: Check extracted standalone ffmpeg executable in packages
-        // Priority 2: Recursively find extracted binary if placed in subfolder
-        // Priority 3: Fall back to native Library Dir
-        val ffmpegBin = File(ffmpegDir, "usr/bin/ffmpeg").takeIf { it.exists() }
+
+        // FFmpeg support libraries that must NOT be treated as the ffmpeg executable
+        val ffmpegSupportLibs = setOf(
+            "libavformat", "libavcodec", "libavutil", "libavfilter",
+            "libavdevice", "libswresample", "libswscale", "libpostproc",
+        )
+
+        // Priority 1: Check native Library Dir for libffmpeg.so (Standard Android location for executable binary)
+        // Priority 2: Check well-known paths for the extracted ffmpeg executable in packages
+        // Priority 3: Recursively search packages for an ffmpeg executable (excluding support libs & zip archives)
+        val ffmpegBin = File(binDir, "libffmpeg.so").takeIf { it.exists() }
+            ?: File(ffmpegDir, "usr/bin/ffmpeg").takeIf { it.exists() }
             ?: File(ffmpegDir, "bin/ffmpeg").takeIf { it.exists() }
             ?: File(ffmpegDir, "ffmpeg").takeIf { it.exists() }
-            ?: ffmpegDir.walkTopDown().firstOrNull { it.isFile && (it.name.startsWith("ffmpeg") || it.length() > 1_000_000L) }
-            ?: File(binDir, "libffmpeg.so").takeIf { it.exists() }
-            ?: File(binDir, "libffmpeg.zip.so").takeIf { it.exists() }
+            ?: ffmpegDir.walkTopDown().firstOrNull { file ->
+                file.isFile && file.name.contains("ffmpeg", ignoreCase = true)
+                    && !file.name.endsWith(".zip.so")
+                    && ffmpegSupportLibs.none { lib -> file.name.startsWith(lib, ignoreCase = true) }
+            }
 
-        if (ffmpegBin == null || !ffmpegBin.exists()) {
+        if ((ffmpegBin == null) || (!ffmpegBin.exists())) {
             Log.e(TAG, "FFmpeg binary not found in $ffmpegDir or $binDir")
             return@withContext -1
         }
 
-        try {
-            ffmpegBin.setExecutable(true, false)
-        } catch (_: Exception) {}
+        Log.d(TAG, "Resolved FFmpeg binary: ${ffmpegBin.absolutePath}")
+
+        // Only chmod files outside nativeLibraryDir to prevent Android SELinux denials
+        if (ffmpegBin.parentFile?.absolutePath != binDir.absolutePath) {
+            try {
+                ffmpegBin.setExecutable(true, false)
+            } catch (_: Exception) {}
+        }
 
         val command = mutableListOf<String>()
         command.add(ffmpegBin.absolutePath)
@@ -301,15 +318,18 @@ object CompressionManager {
         val pb = ProcessBuilder(command)
         val env = pb.environment()
         
+        // Link all native directories including python/usr/lib for shared support libraries
         val ldLibraryPath = listOfNotNull(
+            binDir.absolutePath,
+            File(ffmpegDir, "usr/lib").takeIf { it.exists() }?.absolutePath,
+            File(pythonDir, "usr/lib").takeIf { it.exists() }?.absolutePath,
             ffmpegBin.parentFile?.absolutePath,
             ffmpegBin.parentFile?.parentFile?.let { File(it, "lib").absolutePath },
-            File(ffmpegDir, "usr/lib").absolutePath,
-            File(ffmpegDir, "usr/lib64").absolutePath,
-            binDir.absolutePath,
+            File(ffmpegDir, "usr/lib64").takeIf { it.exists() }?.absolutePath,
+            File(ffmpegDir, "lib").takeIf { it.exists() }?.absolutePath,
             "/system/lib64",
-            "/system/lib"
-        ).joinToString(":")
+            "/system/lib",
+        ).asSequence().distinct().joinToString(":")
 
         env["LD_LIBRARY_PATH"] = ldLibraryPath
         env["PATH"] = (System.getenv("PATH") ?: "") + ":" + (ffmpegBin.parentFile?.absolutePath ?: "") + ":" + binDir.absolutePath
@@ -317,9 +337,9 @@ object CompressionManager {
         try {
             val process = pb.start()
             
-            // Collect logs to help identify crashes like Signal 139 (Segfault).
-            val outThread = Thread { process.inputStream.bufferedReader().forEachLine { Log.d(TAG, "FFmpeg-Out: $it") } }
-            val errThread = Thread { process.errorStream.bufferedReader().forEachLine { Log.e(TAG, "FFmpeg-Err: $it") } }
+            // FFmpeg prints progress and metadata to stderr; log at debug level to avoid logcat spam.
+            val outThread = Thread { process.inputStream.bufferedReader().forEachLine { Log.d(TAG, "FFmpeg: $it") } }
+            val errThread = Thread { process.errorStream.bufferedReader().forEachLine { Log.d(TAG, "FFmpeg: $it") } }
             
             outThread.start()
             errThread.start()

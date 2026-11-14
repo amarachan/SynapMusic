@@ -24,9 +24,8 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
-import com.yausername.ffmpeg.FFmpeg
+import com.synap.music.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
-import com.synap.music.utils.preferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -86,17 +85,18 @@ class MainApplication : Application(), ImageLoaderFactory {
      */
     private fun scheduleMaintenanceHealer() {
         val workRequest = androidx.work.PeriodicWorkRequestBuilder<MaintenanceHealer>(
-            12, java.util.concurrent.TimeUnit.HOURS
+            12,
+            java.util.concurrent.TimeUnit.HOURS,
         ).setConstraints(
             androidx.work.Constraints.Builder()
-                .setRequiresCharging(true) // Only run when you're charging to save battery.
-                .build()
+                .setRequiresCharging(requiresCharging = true) // Only run when you're charging to save battery.
+                .build(),
         ).build()
 
         androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "MaintenanceHealer",
             androidx.work.ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
+            workRequest,
         )
     }
 
@@ -106,18 +106,19 @@ class MainApplication : Application(), ImageLoaderFactory {
      */
     private fun scheduleOptimizationWorker() {
         val workRequest = androidx.work.PeriodicWorkRequestBuilder<OptimizationWorker>(
-            1, java.util.concurrent.TimeUnit.DAYS
+            1,
+            java.util.concurrent.TimeUnit.DAYS,
         ).setConstraints(
             androidx.work.Constraints.Builder()
                 .setRequiredNetworkType(androidx.work.NetworkType.UNMETERED) // Only use Wi-Fi.
-                .setRequiresCharging(true)
-                .build()
+                .setRequiresCharging(requiresCharging = true)
+                .build(),
         ).build()
 
         androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "OptimizationWorker",
             androidx.work.ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
+            workRequest,
         )
     }
 
@@ -128,10 +129,10 @@ class MainApplication : Application(), ImageLoaderFactory {
      */
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)
-            .crossfade(true)
-            .respectCacheHeaders(false)
+            .crossfade(enable = true)
+            .respectCacheHeaders(enable = false)
             .bitmapConfig(Bitmap.Config.ARGB_8888)
-            .allowHardware(true)
+            .allowHardware(enable = true)
             .memoryCache {
                 MemoryCache.Builder(this)
                     .maxSizePercent(0.25)
@@ -143,8 +144,8 @@ class MainApplication : Application(), ImageLoaderFactory {
                     .maxSizeBytes(512L * 1024 * 1024) // 512MB
                     .build()
             }
-            .addLastModifiedToFileCacheKey(true)
-            .networkObserverEnabled(true)
+            .addLastModifiedToFileCacheKey(enable = true)
+            .networkObserverEnabled(enable = true)
             .build()
     }
 }
