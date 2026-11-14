@@ -56,6 +56,8 @@
 -keepclassmembers class io.github.junkfood02.youtubedl_android.** { *; }
 -keep class com.yausername.ffmpeg.** { *; }
 -keepclassmembers class com.yausername.ffmpeg.** { *; }
+-keep class com.synap.music.ffmpeg.** { *; }
+-keepclassmembers class com.synap.music.ffmpeg.** { *; }
 -keep class com.synap.music.utils.MediaFetchUtils** { *; }
 -keepclassmembers class com.synap.music.utils.MediaFetchUtils** { *; }
 -keep class com.synap.music.service.CompressionManager** { *; }
