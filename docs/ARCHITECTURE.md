@@ -20,7 +20,7 @@ SynapMusic follows a modular architecture designed for isolation, performance, a
 ### 1.2 Android 15 & 16 KB Page Size Alignment
 SynapMusic targets `compileSdk = 35` (Android 15) and fully supports Android's 16 KB page size memory architecture.
 - **Native Library Alignment**: All embedded native C/C++ libraries (FFmpeg, Zstandard JNI `1.5.7-10`) are compiled with 16 KB segment alignment (`-Wl,-z,max-page-size=16384`).
-- **Page-Aligned Packaging**: `useLegacyPackaging = false` stores native `.so` binaries uncompressed and aligned directly inside the APK, allowing zero-copy memory mapping on both 4 KB and 16 KB page size kernel environments.
+- **Native Packaging**: `useLegacyPackaging = true` ensures native `.so` binaries and executables like `libffmpeg.so` are extracted to the application's `nativeLibraryDir` with proper execution permissions on modern Android versions (`android:extractNativeLibs="true"`).
 
 ---
 
@@ -64,11 +64,38 @@ The `CompressionManager` executes a real-time hardware probe before downloading 
   - Low Storage (<3GB) uses AAC for minimal disk footprint and universal device compatibility.
   - Storage Constrained (<8GB) uses Opus for high-efficiency compression.
   - Charging + High-End Hardware (≥6GB RAM) uses WavPack/SAC for 24-bit/48kHz audiophile fidelity.
+- **Engine to Container Mapping**:
+  - **FLAC / SLAC / SQZ**: Mapped to native `.flac` container (`-c:a flac`).
+  - **WavPack / L3AC / SAC**: Mapped to Matroska `.mkv` container (`-c:a wavpack`) for lossless bit-exact reproduction and seamless Android Media3 / ExoPlayer compatibility.
+  - **AAC / AAC192**: Mapped to standard `.m4a` MP4 container (`-c:a aac`).
+  - **Opus (64k–510k)**: Mapped to `.opus` container (`-c:a opus`).
 
-### 3.2 Transcoding & Resiliency Flow
-1. **Direct Save / Transcoding**: Opus/AAC streams are saved directly. Lossless targets (FLAC/WavPack) are processed via self-contained FFmpeg binaries with dynamically resolved `LD_LIBRARY_PATH` linkages and full ProGuard/R8 JNI retention.
-2. **Resilience Fallbacks**: Transcode failure (e.g. Signal 139 on x86_64) triggers a raw stream copy. If that fails, a pure Kotlin direct file copy executes as a final fallback.
-3. **True Container Extension Preservation**: During direct file copy fallbacks, `MediaFetchUtils.kt` preserves the downloaded stream's true container extension (`$videoId.${downloadedFile.extension}`) and registers its exact MIME type (`audio/m4a`, `audio/webm`) in Room DB. This ensures ExoPlayer's container extractors (`Mp4Extractor`, `MatroskaExtractor`) parse and play the file without error.
+### 3.2 Transcoding, FFmpeg Architecture & Resiliency Flow
+1. **Lightweight Audio-Only Static FFmpeg**:
+   - Instead of heavy generic builds (~35MB per ABI with unused video codecs like H.264/HEVC/AV1), SynapMusic uses custom-built, statically linked audio-only FFmpeg binaries (`libffmpeg.so`, ~2.3 MB for arm64 / ~2.8 MB for x86_64).
+   - Only audiophile codecs are compiled in: **WavPack**, **FLAC**, **Opus**, **AAC**, and **PCM**, along with containers (`.wv`, `.flac`, `.opus`, `.m4a`, `.wav`).
+   - Self-contained and compiled with 16 KB page-alignment (`-Wl,-z,max-page-size=16384`), resolving previous dynamic linking crashes (Exit Code 139 / SIGSEGV) and reducing per-ABI release APK size to **~24 MB**.
+2. **Strict Audio-Only Transcoding (`-vn`)**:
+   - YouTube download streams from `yt-dlp` often arrive in containers with attached album art or video streams.
+   - All FFmpeg argument lists prepend `"-vn"` (disable video), forcing FFmpeg to discard any incoming video streams and transcode exclusively the audio stream. This reduces transcoding latency from ~3+ minutes of CPU-bound H.264 video encoding down to **<200 milliseconds**, eliminating thermal throttling, battery drain, and bloated file sizes.
+3. **Native Binary Discovery & Execution Hierarchy**:
+   - **Priority 1 (`nativeLibraryDir`)**: Checks `applicationInfo.nativeLibraryDir` for `libffmpeg.so` (the 16 KB page-aligned, W^X compliant PIE executable installed by the package manager).
+   - **Priority 2 & 3 (`packages/ffmpeg`)**: Searches `no_backup/youtubedl-android/packages/ffmpeg` for binary paths, strictly excluding shared support libraries (`libavformat`, `libavcodec`, etc.) to prevent executing non-executable `.so` libraries.
+   - **SELinux Permissions Guard**: Only applies `chmod`/`setExecutable` on files residing outside `nativeLibraryDir`, preventing Android SELinux audit denials (`avc: denied { setattr }`).
+4. **Dynamic Linker Environment (`LD_LIBRARY_PATH`)**:
+   - The process execution environment explicitly concatenates:
+     - `nativeLibraryDir`
+     - `packages/ffmpeg/usr/lib`
+     - `packages/python/usr/lib` (containing common POSIX dependencies: `libandroid-posix-semaphore.so`, `libcrypto.so.3`, `libssl.so.3`, `libexpat.so.1`, `libandroid-support.so`)
+     - System library paths (`/system/lib64`, `/system/lib`)
+5. **UNIX Symlink Restoration**:
+   - `FFmpeg.kt` automatically scans extracted package files <= 100 bytes (placeholders containing symlink target names created by Java `ZipFile`) and restores real UNIX symlinks using `android.system.Os.symlink` (with target file copy fallback), preventing linker errors such as `"libavdevice.so is too small to be an ELF executable"`.
+6. **Multi-Tier Resilience Fallbacks**:
+   - **Encoder Fallback**: If the primary native Opus encoder fails, the pipeline immediately falls back to `libopus`.
+   - **Stream Copy Fallback**: If transcoding fails (e.g. unexpected codec failure), FFmpeg attempts a raw stream copy (`-c:a copy -vn`).
+   - **Pure Kotlin Direct Copy**: If FFmpeg execution fails entirely, a direct file copy executes as a final safeguard, guaranteeing that downloaded tracks are never lost.
+7. **True Container Extension Preservation**:
+   - During direct file copy fallbacks, `MediaFetchUtils.kt` preserves the downloaded stream's true container extension (`$videoId.${downloadedFile.extension}`) and registers its exact MIME type (`audio/m4a`, `audio/webm`, `video/mp4`) in Room DB. This ensures ExoPlayer's container extractors (`Mp4Extractor`, `MatroskaExtractor`) parse and play the file without error.
 
 ### 3.3 Database Healing & Hardware Locks
 Because YouTube Search often returns Music Video IDs while official Album pages use Audio IDs, the database must dynamically self-heal offline mappings:
