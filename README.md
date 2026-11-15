@@ -286,25 +286,25 @@ The `CompressionManager` selects the codec based on your device status:
 | **WavPack** (`.wv` / `.mkv`) | Lossless / Hybrid | Perfect Bit-Exact | High | Good |
 | **L3AC** (`.mkv`) | Lossless Hi-Res | Audiophile (24-bit/48kHz) | High | Good |
 | **SAC** (`.mkv`) | Lossless Super Audio | Audiophile (24-bit/48kHz) | High | Good |
-| **SLAC** (`.mkv`) | Lossless Super Lite | Perfect Bit-Exact | High | Good |
-| **SQZ** (`.mkv`) | Lossless Compressed | Perfect Bit-Exact | High | Good |
+| **SLAC** (`.flac`) | Lossless Super Lite | Perfect Bit-Exact | High | Good |
+| **SQZ** (`.flac`) | Lossless Compressed | Perfect Bit-Exact | High | Good |
 
 ---
 
 ## 📦 Build Variants & APK Optimization
 
 * **Original Unsplit Footprint**: `136 MB`
-* **Optimized Release Size**: **`29 MB`** (ARM64 Split, ~79% footprint reduction)
+* **Optimized Release Size**: **`24 MB`** (ARM64 Split, ~82% footprint reduction)
 
 ### Available Download Variants (GitHub Releases)
 
 | File Name | Purpose | Recommended For | Size | ABIs |
 | :--- | :--- | :--- | :---: | :--- |
-| **`SynapMusic-app-arm64-v8a-release.apk`** | Modern Android Phones | Most Modern Devices | `29 MB` | `arm64-v8a` |
-| **`SynapMusic-app-armeabi-v7a-release.apk`** | Older Phones / Android TVs | Legacy Devices & TVs | `27 MB` | `armeabi-v7a` |
-| **`SynapMusic-app-x86_64-release.apk`** | Intel Chromebooks & Emulators | 64-bit Intel Devices | `30 MB` | `x86_64` |
-| **`SynapMusic-app-x86-release.apk`** | 32-bit Intel Emulators | Legacy Intel Devices | `29 MB` | `x86` |
-| **`SynapMusic-app-universal-release.apk`** | Single File for All Devices | Universal Sideloading | `89 MB` | All 4 ABIs |
+| **`SynapMusic-app-arm64-v8a-release.apk`** | Modern Android Phones | Most Modern Devices | `24 MB` | `arm64-v8a` |
+| **`SynapMusic-app-armeabi-v7a-release.apk`** | Older Phones / Android TVs | Legacy Devices & TVs | `23 MB` | `armeabi-v7a` |
+| **`SynapMusic-app-x86_64-release.apk`** | Intel Chromebooks & Emulators | 64-bit Intel Devices | `24 MB` | `x86_64` |
+| **`SynapMusic-app-x86-release.apk`** | 32-bit Intel Emulators | Legacy Intel Devices | `24 MB` | `x86` |
+| **`SynapMusic-app-universal-release.apk`** | Single File for All Devices | Universal Sideloading | `68 MB` | All 4 ABIs |
 
 > **Note**: Download pre-built APKs directly from the [**GitHub Releases Page**](https://github.com/amarachan/SynapMusic/releases).
 
