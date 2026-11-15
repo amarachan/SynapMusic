@@ -1,6 +1,9 @@
-* SynapMusic v1.0.0 Initial Release
-* High-performance music streaming and local phone storage scanner
-* Offline Vault audio transcoding engine (Opus, AAC, FLAC, WavPack)
-* Dual Equalizer & DSP mastering with 5-band frequency tuning and 3D Surround
-* Real-time karaoke lyrics with 15-language auto-translation
-* Portable encrypted SynapCube (.synapcube) library backup and restore engine
+* SynapMusic v1.0.0 Release!
+* Added local music scanner to easily browse and play audio files on your device
+* Fixed offline Vault playback issues with scanned local tracks
+* High-res audio support: seamlessly transcode and play FLAC, WavPack, Opus, and AAC in Vault
+* Reduced app download size down to ~24 MB by streamlining audio decoders
+* Equalizer and DSP enhancements with 5-band tuning and 3D Surround
+* Real-time synchronized lyrics with multi-language translation
+* Backup and restore library with portable encrypted SynapCube (.synapcube) files
+* Performance optimizations and playback reliability fixes
