@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.ui.draw.clip
 import com.synap.music.ui.styling.rememberButtonColor
-import com.synap.music.ui.styling.rememberPulsatingHybridColor
 import com.synap.music.utils.color
 import com.synap.music.utils.semiBold
 import androidx.compose.foundation.layout.Column
@@ -99,6 +98,9 @@ import com.synap.music.utils.toast
 import com.synap.music.utils.useSystemFontKey
 import com.synap.music.utils.volumeNormalizationKey
 
+/**
+ * Settings tab for audio playback, DSP mastering, and appearance options.
+ */
 @ExperimentalAnimationApi
 @Composable
 fun PlayerSettings() {
@@ -106,6 +108,7 @@ fun PlayerSettings() {
     val (colorPalette, typography) = LocalAppearance.current
     val binder = LocalPlayerServiceBinder.current
 
+    // Playback behavior & queue state
     var persistentQueue by rememberPreference(persistentQueueKey, false)
     var resumePlaybackWhenDeviceConnected by rememberPreference(
         resumePlaybackWhenDeviceConnectedKey,
@@ -119,15 +122,15 @@ fun PlayerSettings() {
     var audioQuality by rememberPreference(audioQualityKey, AudioQuality.Auto)
     var thumbnailAudioBadgeStyle by rememberPreference(thumbnailAudioBadgeStyleKey, ThumbnailAudioBadgeStyle.FidelityRank)
 
+    // Audio DSP and studio mastering
     var dynamicRangeCompression by rememberPreference(dynamicRangeCompressionKey, false)
     var spatialMastering by rememberPreference(spatialMasteringKey, false)
     var immersiveDecoding by rememberPreference(immersiveDecodingKey, false)
     var loudnessTarget by rememberPreference(loudnessTargetKey, LoudnessTarget.Auto)
     var crossfeedEnabled by rememberPreference(crossfeedEnabledKey, false)
     var crossfadeDuration by rememberPreference(crossfadeDurationKey, 0)
-    
-    // ... UI-specific states ...
 
+    // Appearance & theme preferences
     var savedColorPaletteName by rememberPreference(colorPaletteNameKey, ColorPaletteName.Dynamic)
     var thumbnailRoundness by rememberPreference(
         thumbnailRoundnessKey,
@@ -140,6 +143,7 @@ fun PlayerSettings() {
         false
     )
 
+    // Pulsating animation settings
     var savedPulsatingEffectEnabled by rememberPreference(isPulsatingEffectEnabledKey, true)
     var savedPulsatingIntensity by rememberPreference(pulsatingIntensityKey, PulsatingIntensity.Balanced)
     var savedPulsatingSpeed by rememberPreference(pulsatingSpeedKey, PulsatingSpeed.Natural)
@@ -150,6 +154,7 @@ fun PlayerSettings() {
     var applyPulsatingToDiscoverCards by rememberPreference(applyPulsatingToDiscoverCardsKey, true)
     var savedButtonColorPreset by rememberPreference(buttonColorPresetKey, PulsatingButtonColorPreset.PulsatingHybrid)
 
+    // Staging state for the color/effect pickers before hitting "Apply Changes"
     var pendingColorPaletteName by rememberSaveable(savedColorPaletteName) { mutableStateOf(savedColorPaletteName) }
     var pendingPulsatingEffectEnabled by rememberSaveable(savedPulsatingEffectEnabled) { mutableStateOf(savedPulsatingEffectEnabled) }
     var pendingPulsatingIntensity by rememberSaveable(savedPulsatingIntensity) { mutableStateOf(savedPulsatingIntensity) }
@@ -158,6 +163,7 @@ fun PlayerSettings() {
     var pendingPulsatingColorPalette by rememberSaveable(savedPulsatingColorPalette) { mutableStateOf(savedPulsatingColorPalette) }
     var pendingButtonColorPreset by rememberSaveable(savedButtonColorPreset) { mutableStateOf(savedButtonColorPreset) }
 
+    // Keep pending states in sync if preferences change externally
     LaunchedEffect(savedColorPaletteName) {
         pendingColorPaletteName = savedColorPaletteName
     }
@@ -188,9 +194,11 @@ fun PlayerSettings() {
         mutableStateOf(false)
     }
 
+    // Launcher for system audio effects panel (e.g. MusicFX, Wavelet, Dirac)
     val activityResultLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { }
 
+    // Insets accounting for top action bar and mini-player offset
     val paddingValues = LocalPlayerAwareWindowInsets.current.asPaddingValues()
     val layoutDirection = LocalLayoutDirection.current
 
@@ -219,6 +227,7 @@ fun PlayerSettings() {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        // Preview current thumbnail corner roundness & accent border
                         Spacer(
                             modifier = Modifier
                                 .border(
@@ -319,6 +328,7 @@ fun PlayerSettings() {
 
                 val buttonColor = rememberButtonColor()
 
+                // Commit staged appearance changes to persistent preferences
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -396,6 +406,8 @@ fun PlayerSettings() {
                 )
             }
 
+            // Lockscreen wallpaper feature is only used on Android 12 and below.
+            // On Android 13+ (API 33), media art is handled natively by the system MediaStyle notification.
             if (!isAtLeastAndroid13) {
                 SettingsGroupCard(title = "LOCKSCREEN") {
                     SwitchSettingEntry(
@@ -418,6 +430,7 @@ fun PlayerSettings() {
                 }
             )
 
+            // Auto-resume playback on headphone/bluetooth connection (requires API 23+)
             if (isAtLeastAndroid6) {
                 SwitchSettingEntry(
                     title = "Resume playback",
@@ -431,6 +444,7 @@ fun PlayerSettings() {
         }
 
         SettingsGroupCard(title = "AUDIO") {
+            // Trim silent parts during playback via ExoPlayer
             SwitchSettingEntry(
                 title = "Skip silence",
                 text = "Skip silent parts during playback",
@@ -449,6 +463,7 @@ fun PlayerSettings() {
                 }
             )
 
+            // Automatically skip non-music segments (sponsors, intros, dialogue)
             SwitchSettingEntry(
                 title = "SponsorBlock",
                 text = "Automatically skip sponsorships, intros, and outros",
@@ -458,6 +473,7 @@ fun PlayerSettings() {
                 }
             )
 
+            // Gapless crossfade between tracks
             ValueSelectorSettingsEntry(
                 title = "Crossfade duration",
                 selectedValue = crossfadeDuration,
@@ -494,6 +510,7 @@ fun PlayerSettings() {
                 valueText = { "${it.label} — ${it.subtitle}" }
             )
 
+            // In-app 5-band graphic equalizer
             SettingsEntry(
                 title = "Graphic Equalizer & Audio DSP",
                 text = "In-app 5-band frequency tuning, Bass Boost, and 3D Surround",
@@ -502,6 +519,7 @@ fun PlayerSettings() {
                 }
             )
 
+            // Open system equalizer panel (MusicFX, Dirac, Dolby Atmos) with fallback to Sound Settings
             SettingsEntry(
                 title = "System Equalizer",
                 text = "Interact with the system equalizer",
@@ -536,6 +554,7 @@ fun PlayerSettings() {
                 valueText = { "${it.label} (${it.subtitle})" }
             )
 
+            // Dynamic Range Compression (DRC) for consistent volume levels across songs
             SwitchSettingEntry(
                 title = "Dynamic Range Compression",
                 text = "Studio-grade volume leveling (DRC)",
@@ -543,6 +562,7 @@ fun PlayerSettings() {
                 onCheckedChange = { dynamicRangeCompression = it }
             )
 
+            // Bauer stereophonic-to-binaural (BS2B) crossfeed to reduce headphone listener fatigue
             SwitchSettingEntry(
                 title = "Headphone crossfeed",
                 text = "BS2B binaural filter to eliminate hard-panned stereo fatigue",
@@ -550,6 +570,7 @@ fun PlayerSettings() {
                 onCheckedChange = { crossfeedEnabled = it }
             )
 
+            // Binaural HRTF & acoustic simulation
             SwitchSettingEntry(
                 title = "Spatial Mastering",
                 text = "Binaural HRTF & Resonance logic (Steam Audio simulation)",
@@ -557,6 +578,7 @@ fun PlayerSettings() {
                 onCheckedChange = { spatialMastering = it }
             )
 
+            // Native decoder for IAMF (Immersive Audio Model and Formats) and multi-channel streams
             SwitchSettingEntry(
                 title = "Immersive Decoding",
                 text = "Native support for IAMF (Eclipsa) and multi-channel content",
@@ -566,6 +588,7 @@ fun PlayerSettings() {
         }
     }
 
+    // In-app 5-band graphic equalizer dialog
     if (isShowingEqualizerDialog) {
         EqualizerDialog(
             onDismiss = { isShowingEqualizerDialog = false }

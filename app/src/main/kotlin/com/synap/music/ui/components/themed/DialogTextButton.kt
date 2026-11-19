@@ -14,7 +14,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.synap.music.ui.styling.LocalAppearance
-import com.synap.music.ui.styling.rememberPulsatingHybridColor
 import com.synap.music.utils.color
 import com.synap.music.ui.styling.rememberButtonColor
 import com.synap.music.utils.medium

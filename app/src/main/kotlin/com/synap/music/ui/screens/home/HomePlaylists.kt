@@ -50,9 +50,9 @@ import com.synap.music.ui.components.themed.FloatingActionsContainerWithScrollTo
 import com.synap.music.ui.components.themed.InLibraryPlaylistMenu
 import com.synap.music.ui.components.themed.BuiltInPlaylistMenu
 import com.synap.music.ui.components.themed.AppleMusicImportDialog
-import com.synap.music.ui.components.themed.LiveRadioDialog
 import com.synap.music.ui.components.themed.LocalFolderScanDialog
 import com.synap.music.ui.screens.allPlaylistsRoute
+import com.synap.music.ui.screens.liveRadioRoute
 import com.synap.music.ui.screens.smartMixesRoute
 import com.synap.music.ui.screens.synapRecapRoute
 import com.synap.music.ui.components.themed.SpotifyImportDialog
@@ -96,7 +96,6 @@ import kotlinx.coroutines.flow.firstOrNull
 import com.synap.music.utils.completed
 import com.synap.music.utils.forcePlayFromBeginning
 import com.synap.music.LocalPlayerServiceBinder
-import androidx.compose.foundation.combinedClickable
 
 @ExperimentalAnimationApi
 @ExperimentalFoundationApi
@@ -126,15 +125,7 @@ fun HomePlaylists(
         mutableStateOf(false)
     }
 
-    var isShowingLiveRadioDialog by rememberSaveable {
-        mutableStateOf(false)
-    }
-
     var isShowingLocalScanDialog by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var isShowingSmartMixesDialog by rememberSaveable {
         mutableStateOf(false)
     }
 
@@ -205,14 +196,6 @@ fun HomePlaylists(
         AppleMusicImportDialog(
             onDismiss = {
                 isImportingAppleMusicPlaylist = false
-            }
-        )
-    }
-
-    if (isShowingLiveRadioDialog) {
-        LiveRadioDialog(
-            onDismiss = {
-                isShowingLiveRadioDialog = false
             }
         )
     }
@@ -504,7 +487,7 @@ fun HomePlaylists(
                         alternative = true,
                         modifier = Modifier.clickable {
                             if (selection.isEmpty()) {
-                                isShowingLiveRadioDialog = true
+                                liveRadioRoute.global()
                             }
                         }
                     )
