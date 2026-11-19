@@ -54,7 +54,6 @@ import com.synap.music.network.RadioBrowserClient
 import com.synap.music.network.RadioStation
 import com.synap.music.ui.styling.LocalAppearance
 import com.synap.music.ui.styling.rememberButtonColor
-import com.synap.music.ui.styling.rememberPulsatingHybridColor
 import com.synap.music.utils.center
 import com.synap.music.utils.color
 import com.synap.music.utils.forcePlay
@@ -83,8 +82,13 @@ val radioGenreTags = listOf(
 )
 
 /**
- * Compact, sleek Live Internet Radio Browser Dialog.
+ * Compact Live Internet Radio Browser Dialog.
+ * @deprecated Superceded by full-screen LiveRadioScreen via liveRadioRoute.global().
  */
+@Deprecated(
+    message = "Use LiveRadioScreen via liveRadioRoute.global() instead",
+    replaceWith = ReplaceWith("liveRadioRoute.global()")
+)
 @Composable
 fun LiveRadioDialog(
     onDismiss: () -> Unit,

@@ -24,6 +24,7 @@ import com.synap.music.ui.screens.search.SearchScreen
 import com.synap.music.ui.screens.searchresult.SearchResultScreen
 import com.synap.music.ui.screens.playlists.AllPlaylistsScreen
 import com.synap.music.ui.screens.recap.SynapRecapScreen
+import com.synap.music.ui.screens.liveradio.LiveRadioScreen
 import com.synap.music.ui.screens.settings.SettingsScreen
 import com.synap.music.ui.screens.smartmixes.SmartMixesScreen
 import com.synap.music.utils.pauseSearchHistoryKey
@@ -43,6 +44,7 @@ val settingsRoute = Route0("settingsRoute")
 val smartMixesRoute = Route0("smartMixesRoute")
 val synapRecapRoute = Route0("synapRecapRoute")
 val allPlaylistsRoute = Route0("allPlaylistsRoute")
+val liveRadioRoute = Route0("liveRadioRoute")
 
 @SuppressLint("ComposableNaming")
 @Suppress("NOTHING_TO_INLINE")
@@ -102,6 +104,10 @@ fun RouteHandlerScope.globalRoutes() {
 
     allPlaylistsRoute(this) {
         AllPlaylistsScreen()
+    }
+
+    liveRadioRoute(this) {
+        LiveRadioScreen()
     }
 
     searchRoute(this) { initialTextInput ->

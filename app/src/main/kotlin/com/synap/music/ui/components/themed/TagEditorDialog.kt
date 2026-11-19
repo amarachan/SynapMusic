@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -37,7 +36,6 @@ import coil.compose.AsyncImage
 import com.synap.music.engine.TagEditorEngine
 import com.synap.music.ui.styling.LocalAppearance
 import com.synap.music.ui.styling.rememberButtonColor
-import com.synap.music.ui.styling.rememberPulsatingHybridColor
 import com.synap.music.utils.color
 import com.synap.music.utils.secondary
 import com.synap.music.utils.semiBold

@@ -42,7 +42,7 @@ import com.synap.music.listentogether.ListenTogether
 import androidx.core.content.edit
 import com.synap.music.ui.components.themed.AppleMusicImportDialog
 import com.synap.music.ui.components.themed.ConfirmationDialog
-import com.synap.music.ui.components.themed.LiveRadioDialog
+import com.synap.music.ui.screens.liveRadioRoute
 import com.synap.music.ui.components.themed.LocalFolderScanDialog
 import com.synap.music.ui.screens.smartMixesRoute
 import com.synap.music.ui.components.themed.ListenTogetherDialog
@@ -158,7 +158,6 @@ fun OtherSettings() {
 
     var isImportingSpotifyPlaylist by remember { mutableStateOf(false) }
     var isImportingAppleMusicPlaylist by remember { mutableStateOf(false) }
-    var isShowingLiveRadioDialog by remember { mutableStateOf(false) }
     var isShowingLocalScanDialog by remember { mutableStateOf(false) }
     var isShowingResetConfirmation by remember { mutableStateOf(false) }
 
@@ -254,7 +253,7 @@ fun OtherSettings() {
             SettingsEntry(
                 title = "Browse Live Radio Stations",
                 text = "Search stations by name, genre, or country",
-                onClick = { isShowingLiveRadioDialog = true }
+                onClick = { liveRadioRoute.global() }
             )
         }
 
@@ -511,12 +510,6 @@ fun OtherSettings() {
     if (isImportingAppleMusicPlaylist) {
         AppleMusicImportDialog(
             onDismiss = { isImportingAppleMusicPlaylist = false }
-        )
-    }
-
-    if (isShowingLiveRadioDialog) {
-        LiveRadioDialog(
-            onDismiss = { isShowingLiveRadioDialog = false }
         )
     }
 

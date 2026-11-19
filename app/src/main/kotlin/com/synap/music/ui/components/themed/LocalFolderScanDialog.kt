@@ -41,7 +41,6 @@ import com.synap.music.R
 import com.synap.music.scanner.LocalFolderScanner
 import com.synap.music.ui.styling.LocalAppearance
 import com.synap.music.ui.styling.rememberButtonColor
-import com.synap.music.ui.styling.rememberPulsatingHybridColor
 import com.synap.music.utils.center
 import com.synap.music.utils.color
 import com.synap.music.utils.secondary
