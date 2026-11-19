@@ -202,7 +202,7 @@ Search artist profiles, browse full discographies, or navigate directly to artis
 ---
 
 ### 📻 Live Internet Radio Browser
-Search and stream tens of thousands of live global FM/AM and online web radio stations via RadioBrowser API.
+Dedicated full-screen radio browser with instant station search, horizontal genre filter chips (Pop, Rock, Jazz, EDM, Lofi, Synthwave, etc.), live stream bitrate badges, and direct ExoPlayer playback via RadioBrowser API.
 
 <p align="center">
   <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/radio.png" width="180" alt="Live Radio" />

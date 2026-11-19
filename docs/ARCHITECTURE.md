@@ -115,9 +115,10 @@ When a file is registered in the Vault, the system follows a **Synchronous atomi
 - **`SpotifyClient.kt` & `AppleMusicClient.kt`**: Fetches tracklists from public Spotify OAuth Web API endpoints and parses embedded Apple Music JSON-LD metadata.
 - **`PlaylistImportEngine.kt` & `AppleMusicImportEngine.kt`**: Converts extracted tracklists, matches audio streams via YouTube Music (`SynapService.searchPage`), and saves the imported playlist into Room DB.
 
-### 4.2 Live Internet Radio Engine (`com.synap.music.network` & `com.synap.music.ui.components.themed`)
-- **`RadioBrowserClient.kt`**: Connects to the open-source RadioBrowser REST API (`https://de1.api.radio-browser.info/json/`).
-- **`LiveRadioDialog.kt`**: Interactive radio station browser with 16 radio categories (Pop, Rock, Jazz, Classical, News, Dance, Chill, Lofi, 80s, 90s, etc.), high-contrast borders, custom Radio Tower brand icons (`radio_tower.xml`), and real-time visual scrollbars.
+### 4.2 Live Internet Radio Engine (`com.synap.music.network` & `com.synap.music.ui.screens.liveradio`)
+- **`RadioBrowserClient.kt`**: Connects to the open-source RadioBrowser REST API (`https://de1.api.radio-browser.info/json/`) for discovering, searching, and caching global live FM/AM and online web radio broadcasts.
+- **`LiveRadioScreen.kt` & `liveRadioRoute`**: Dedicated full-screen radio browser (`Route0`) with instant station search, horizontal genre filter chips (Pop, Rock, Jazz, EDM, Chill, Lofi, Synthwave, etc.), live stream bitrate/codec badges, animated playing indicator, and direct ExoPlayer streaming with ICY metadata.
+- **`LiveRadioDialog.kt`**: Deprecated legacy dialog component, retained for backwards compatibility.
 
 ### 4.3 WebDAV Network Storage Engine (`com.synap.music.webdav`)
 - **`WebDavClient.kt` & `WebDavConfig.kt`**: Executes `PROPFIND` directory listings over OkHttp to crawl remote NAS servers for audio files (`.flac`, `.wav`, `.mp3`, `.m4a`, `.opus`, etc.).
