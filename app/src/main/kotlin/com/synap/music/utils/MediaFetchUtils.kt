@@ -239,23 +239,24 @@ object MediaFetchUtils {
                             if (ffmpegResponse != 0) {
                                  Log.w(TAG, "FFmpeg failed (Code $ffmpegResponse). Attempting copy fallback.")
                                  val fallbackArgs = arrayOf("-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "copy", outputFile.absolutePath)
-                                 val fallbackResponse = CompressionManager.executeFFmpeg(context, fallbackArgs)
+                                 var fallbackResponse = CompressionManager.executeFFmpeg(context, fallbackArgs)
                                  
+                                 if (fallbackResponse != 0) {
+                                     // In case stream copy into target container failed (e.g. AAC into FLAC), extract pure audio to m4a
+                                     val safeAudioFile = File(outputFile.parentFile, "$videoId.m4a")
+                                     val safeArgs = arrayOf("-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "aac", "-b:a", "192k", safeAudioFile.absolutePath)
+                                     fallbackResponse = CompressionManager.executeFFmpeg(context, safeArgs)
+                                     if ((fallbackResponse == 0) && safeAudioFile.exists() && (safeAudioFile.length() > 0)) {
+                                         outputFile = safeAudioFile
+                                     }
+                                 }
+
                                  if ((fallbackResponse == 0) && outputFile.exists() && (outputFile.length() > 0)) {
                                      success = true
-                                     Log.d(TAG, "FFmpeg copy fallback success")
+                                     Log.d(TAG, "FFmpeg audio fallback success as ${outputFile.name}")
                                  } else {
-                                     Log.w(TAG, "FFmpeg fallback failed. Attempting pure Kotlin copy.")
-                                     try {
-                                         val trueContainerFile = File(outputFile.parentFile, "$videoId.${downloadedFile.extension}")
-                                         downloadedFile.copyTo(trueContainerFile, overwrite = true)
-                                         outputFile = trueContainerFile
-                                         success = trueContainerFile.exists() && (trueContainerFile.length() > 0)
-                                         Log.d(TAG, "Pure Kotlin copy success as ${trueContainerFile.name}")
-                                     } catch (e: Exception) {
-                                         Log.e(TAG, "Pure Kotlin copy failed", e)
-                                         success = false
-                                     }
+                                     Log.e(TAG, "FFmpeg audio extraction fallback failed completely.")
+                                     success = false
                                  }
                             } else {
                                  success = outputFile.exists() && (outputFile.length() > 0)

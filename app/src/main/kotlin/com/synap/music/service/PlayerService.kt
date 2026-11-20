@@ -93,7 +93,6 @@ import com.synap.music.utils.webdavUsernameKey
 import com.synap.music.utils.webdavPasswordKey
 import com.synap.music.MainActivity
 import com.synap.music.R
-import com.synap.music.enums.CompressionEngine
 import com.synap.music.enums.ExoPlayerDiskCacheMaxSize
 import com.synap.music.enums.LoudnessTarget
 import kotlinx.coroutines.flow.firstOrNull
@@ -285,6 +284,11 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                 true,
             )
             .setUsePlatformDiagnostics(false)
+            .build()
+
+        // Pure audio player: explicitly disable video tracks to avoid video decoding overhead & NAL unit parsing errors.
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, true)
             .build()
 
         player.repeatMode = when {
@@ -690,6 +694,7 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
         val isNativeSpatialActive = audioEnhancementManager?.isNativeSystemSpatializerActive(this) == true
         val maxChannels = if (enabled || isNativeSpatialActive) 8 else 2
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, true)
             .setMaxAudioChannelCount(maxChannels)
             .build()
     }
@@ -1120,7 +1125,6 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
 
                                     ringBuffer.append(videoId to url.toUri())
                                     dataSpec.withUri(url.toUri())
-                                        .subrange(dataSpec.uriPositionOffset, chunkLength)
                                 }
                             }
                         }
@@ -1171,24 +1175,16 @@ class PlayerService : InvincibleService(), Player.Listener, PlaybackStatsListene
                 val mediaId = mediaItem.mediaId
                 if (mediaId.isNotEmpty() && (mediaItem.localConfiguration?.uri?.toString()?.startsWith("http") != true)) {
                     val file = MediaFetchUtils.getAudioFile(this@PlayerService, mediaId)
-                    if (file.exists()) {
+                    // Require file.exists() AND file.length() > 0 to avoid race condition with downloads in progress
+                    if (file.exists() && file.length() > 0L) {
                         val mimeType = when (file.extension.lowercase()) {
-                            "mkv" -> {
-                                val engine = runBlocking(Dispatchers.IO) {
-                                    Database.format(mediaId).firstOrNull()?.compressionEngine
-                                }
-                                when (engine) {
-                                    CompressionEngine.WavPack, CompressionEngine.L3AC, CompressionEngine.SAC -> "audio/x-wavpack"
-                                    null -> "video/x-matroska"
-                                    else -> "video/x-matroska"
-                                }
-                            }
+                            "mkv" -> "audio/x-matroska"
                             "ogg" -> "audio/ogg"
                             "wv" -> "audio/x-wavpack"
                             "ape" -> "audio/x-ape"
                             "tta" -> "audio/x-tta"
                             "flac" -> "audio/flac"
-                            "m4a" -> "audio/mp4"
+                            "m4a", "mp4" -> "audio/mp4"
                             "mp3" -> "audio/mpeg"
                             else -> null
                         }

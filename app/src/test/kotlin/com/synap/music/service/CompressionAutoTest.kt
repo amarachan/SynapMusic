@@ -14,6 +14,6 @@ class CompressionAutoTest {
         
         // This is a minimal test to ensure the file compiles and basic enum matching works.
         assertEquals("flac", CompressionManager.getExtension(CompressionEngine.FLAC))
-        assertEquals("wv", CompressionManager.getExtension(CompressionEngine.WavPack))
+        assertEquals("flac", CompressionManager.getExtension(CompressionEngine.WavPack))
     }
 }

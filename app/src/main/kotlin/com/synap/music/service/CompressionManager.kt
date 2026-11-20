@@ -191,14 +191,14 @@ object CompressionManager {
                 // Storage Constrained (< 8 GB): Use Opus for high-efficiency compression
                 scenario.freeStorageGb < 8 -> CompressionEngine.Opus
 
-                // High-End Device & Charging / Unlimited: Use SAC/WavPack
-                scenario.isCharging && (scenario.ramGb >= 6f) && (scenario.cpuCores >= 8) -> CompressionEngine.SAC
+                // High-End Device & Charging / Unlimited: Use SQZ (FLAC Level 8 max compression)
+                scenario.isCharging && (scenario.ramGb >= 6f) && (scenario.cpuCores >= 8) -> CompressionEngine.SQZ
 
                 // High Performance Hardware: Use SQZ (FLAC Level 8 max compression)
                 (scenario.ramGb >= 6f) && (scenario.cpuCores >= 6) -> CompressionEngine.SQZ
 
-                // Standard Mid-Range Device: Use WavPack
-                else -> CompressionEngine.WavPack
+                // Standard Mid-Range Device: Use FLAC
+                else -> CompressionEngine.FLAC
             }
         }
 
@@ -227,7 +227,7 @@ object CompressionManager {
         } else if (engine.name.startsWith("AAC")) {
             request.addOption("-f", "bestaudio[ext=m4a]/bestaudio[acodec=mp4a]/ba[acodec=mp4a]/$networkFormatOption")
         } else {
-            request.addOption("-f", networkFormatOption)
+            request.addOption("-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/$networkFormatOption")
         }
     }
 
@@ -239,7 +239,7 @@ object CompressionManager {
     fun getFFmpegArgs(engine: CompressionEngine): List<String> {
         val codecArgs = when (engine) {
             CompressionEngine.FLAC -> listOf("-c:a", "flac")
-            CompressionEngine.WavPack -> listOf("-c:a", "wavpack")
+            CompressionEngine.WavPack -> listOf("-c:a", "flac")
             CompressionEngine.AAC -> listOf("-c:a", "aac", "-b:a", "256k")
             CompressionEngine.AAC192 -> listOf("-c:a", "aac", "-b:a", "192k")
             CompressionEngine.Opus64 -> listOf("-c:a", "opus", "-b:a", "64k", "-strict", "-2")
@@ -248,10 +248,10 @@ object CompressionManager {
             CompressionEngine.Opus192 -> listOf("-c:a", "opus", "-b:a", "192k", "-strict", "-2")
             CompressionEngine.Opus256 -> listOf("-c:a", "opus", "-b:a", "256k", "-strict", "-2")
             CompressionEngine.Opus510 -> listOf("-c:a", "opus", "-b:a", "510k", "-strict", "-2")
-            CompressionEngine.L3AC -> listOf("-c:a", "wavpack") 
+            CompressionEngine.L3AC -> listOf("-c:a", "flac") 
             CompressionEngine.SLAC -> listOf("-c:a", "flac") 
             CompressionEngine.SQZ -> listOf("-c:a", "flac", "-compression_level", "8")
-            CompressionEngine.SAC -> listOf("-c:a", "wavpack")
+            CompressionEngine.SAC -> listOf("-c:a", "flac")
             else -> listOf("-c:a", "flac")
         }
         return listOf("-vn") + codecArgs
@@ -359,8 +359,8 @@ object CompressionManager {
     
     fun getExtension(engine: CompressionEngine): String {
         return when (engine) {
-            CompressionEngine.FLAC, CompressionEngine.SLAC, CompressionEngine.SQZ -> "flac"
-            CompressionEngine.WavPack, CompressionEngine.L3AC, CompressionEngine.SAC -> "mkv"
+            CompressionEngine.FLAC, CompressionEngine.SLAC, CompressionEngine.SQZ,
+            CompressionEngine.WavPack, CompressionEngine.L3AC, CompressionEngine.SAC -> "flac"
             CompressionEngine.AAC, CompressionEngine.AAC192 -> "m4a"
             CompressionEngine.Opus64, CompressionEngine.Opus92, CompressionEngine.Opus, CompressionEngine.Opus192, CompressionEngine.Opus256, CompressionEngine.Opus510 -> "opus"
             else -> "flac"
