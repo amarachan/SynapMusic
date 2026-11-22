@@ -62,14 +62,26 @@ class OptimizationWorker(
      * an old AAC file to a lossless WavPack file if we can re-fetch it.
      */
     private fun shouldRecompress(current: CompressionEngine, target: CompressionEngine): Boolean {
+        if (current == target) return false
         val priorityMap = mapOf(
             CompressionEngine.FLAC to 0,
-            CompressionEngine.WavPack to 1,
+            CompressionEngine.SLAC to 0,
+            CompressionEngine.SQZ to 0,
+            CompressionEngine.SAC to 0,
+            CompressionEngine.L3AC to 0,
+            CompressionEngine.WavPack to 0,
+            CompressionEngine.Opus510 to 1,
+            CompressionEngine.Opus256 to 1,
+            CompressionEngine.Opus192 to 1,
+            CompressionEngine.Opus to 2,
             CompressionEngine.AAC to 2,
+            CompressionEngine.AAC192 to 2,
+            CompressionEngine.Opus92 to 3,
+            CompressionEngine.Opus64 to 3,
         )
 
-        val currentPriority = priorityMap[current] ?: 0
-        val targetPriority = priorityMap[target] ?: 0
+        val currentPriority = priorityMap[current] ?: 2
+        val targetPriority = priorityMap[target] ?: 2
 
         return targetPriority > currentPriority
     }

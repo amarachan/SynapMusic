@@ -183,7 +183,7 @@ object CompressionManager {
         } else {
             when {
                 // Low Battery / Power Save Mode: Use Opus for fast, zero-transcode power saving & 85% storage reduction
-                (scenario.batteryPct < 15f) || scenario.isPowerSaveMode -> CompressionEngine.Opus
+                (scenario.batteryPct < 15f) || scenario.isPowerSaveMode -> CompressionEngine.Opus64
 
                 // Storage Critical (< 3 GB): Use AAC for minimal file size footprint
                 scenario.freeStorageGb < 3 -> CompressionEngine.AAC
@@ -191,14 +191,14 @@ object CompressionManager {
                 // Storage Constrained (< 8 GB): Use Opus for high-efficiency compression
                 scenario.freeStorageGb < 8 -> CompressionEngine.Opus
 
-                // High-End Device & Charging / Unlimited: Use SQZ (FLAC Level 8 max compression)
-                scenario.isCharging && (scenario.ramGb >= 6f) && (scenario.cpuCores >= 8) -> CompressionEngine.SQZ
+                // High-End Device & Charging / Unlimited: Transparent High-Definition Opus (native to YouTube streams)
+                scenario.isCharging && (scenario.ramGb >= 6f) && (scenario.cpuCores >= 8) -> CompressionEngine.Opus256
 
-                // High Performance Hardware: Use SQZ (FLAC Level 8 max compression)
-                (scenario.ramGb >= 6f) && (scenario.cpuCores >= 6) -> CompressionEngine.SQZ
+                // High Performance Hardware: Audiophile Transparent Opus
+                (scenario.ramGb >= 6f) && (scenario.cpuCores >= 6) -> CompressionEngine.Opus192
 
-                // Standard Mid-Range Device: Use FLAC
-                else -> CompressionEngine.FLAC
+                // Standard Mid-Range Device: Native Transparent Opus
+                else -> CompressionEngine.Opus
             }
         }
 
@@ -233,13 +233,13 @@ object CompressionManager {
 
     /**
      * Technical mapping of our custom engine names to actual FFmpeg CLI commands.
-     * Always prepends "-vn" so that embedded/associated video streams are discarded
-     * for pure audio transcoding.
+     * Always prepends "-threads 0" and "-vn" so that embedded/associated video streams are discarded
+     * for pure audio transcoding with maximum multi-threaded performance.
      */
     fun getFFmpegArgs(engine: CompressionEngine): List<String> {
         val codecArgs = when (engine) {
-            CompressionEngine.FLAC -> listOf("-c:a", "flac")
-            CompressionEngine.WavPack -> listOf("-c:a", "flac")
+            CompressionEngine.FLAC -> listOf("-c:a", "flac", "-compression_level", "4")
+            CompressionEngine.WavPack -> listOf("-c:a", "flac", "-compression_level", "4")
             CompressionEngine.AAC -> listOf("-c:a", "aac", "-b:a", "256k")
             CompressionEngine.AAC192 -> listOf("-c:a", "aac", "-b:a", "192k")
             CompressionEngine.Opus64 -> listOf("-c:a", "opus", "-b:a", "64k", "-strict", "-2")
@@ -248,13 +248,13 @@ object CompressionManager {
             CompressionEngine.Opus192 -> listOf("-c:a", "opus", "-b:a", "192k", "-strict", "-2")
             CompressionEngine.Opus256 -> listOf("-c:a", "opus", "-b:a", "256k", "-strict", "-2")
             CompressionEngine.Opus510 -> listOf("-c:a", "opus", "-b:a", "510k", "-strict", "-2")
-            CompressionEngine.L3AC -> listOf("-c:a", "flac") 
-            CompressionEngine.SLAC -> listOf("-c:a", "flac") 
-            CompressionEngine.SQZ -> listOf("-c:a", "flac", "-compression_level", "8")
-            CompressionEngine.SAC -> listOf("-c:a", "flac")
-            else -> listOf("-c:a", "flac")
+            CompressionEngine.L3AC -> listOf("-c:a", "flac", "-compression_level", "4") 
+            CompressionEngine.SLAC -> listOf("-c:a", "flac", "-compression_level", "3") 
+            CompressionEngine.SQZ -> listOf("-c:a", "flac", "-compression_level", "5")
+            CompressionEngine.SAC -> listOf("-c:a", "flac", "-compression_level", "4")
+            else -> listOf("-c:a", "flac", "-compression_level", "4")
         }
-        return listOf("-vn") + codecArgs
+        return listOf("-threads", "0", "-vn") + codecArgs
     }
 
     /**

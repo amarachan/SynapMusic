@@ -207,15 +207,36 @@ object MediaFetchUtils {
                         if (downloadedFile?.exists() == true) {
                             Log.d(TAG, "Download Success. Encoding $videoId to $targetEngine...")
                             
-                            val ffmpegArgs = mutableListOf<String>()
-                            ffmpegArgs.addAll(listOf("-y", "-i", downloadedFile.absolutePath))
-                            ffmpegArgs.addAll(CompressionManager.getFFmpegArgs(targetEngine!!))
-                            ffmpegArgs.add(outputFile.absolutePath)
-                            
-                            var ffmpegResponse = CompressionManager.executeFFmpeg(context, ffmpegArgs.toTypedArray())
+                            // Fast-path stream copy: If the downloaded YouTube container matches the target codec family,
+                            // extract audio directly without lossy-to-lossy re-encoding in under 100ms.
+                            val dlExt = downloadedFile.extension.lowercase()
+                            val canStreamCopy = when {
+                                (targetEngine?.name?.startsWith("Opus") == true) && (dlExt in listOf("webm", "opus", "ogg")) -> true
+                                (targetEngine?.name?.startsWith("AAC") == true) && (dlExt in listOf("m4a", "aac")) -> true
+                                else -> false
+                            }
+
+                            var ffmpegResponse = -1
+                            if (canStreamCopy) {
+                                Log.d(TAG, "Executing fast-path stream copy for $videoId ($targetEngine)...")
+                                val fastCopyArgs = arrayOf("-threads", "0", "-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "copy", outputFile.absolutePath)
+                                ffmpegResponse = CompressionManager.executeFFmpeg(context, fastCopyArgs)
+                                if (ffmpegResponse == 0 && outputFile.exists() && outputFile.length() > 0) {
+                                    Log.d(TAG, "Fast-path stream copy succeeded in milliseconds for $videoId")
+                                }
+                            }
+
+                            // If not eligible for stream copy or if stream copy failed, run full multi-threaded transcode
+                            if (ffmpegResponse != 0) {
+                                val ffmpegArgs = mutableListOf<String>()
+                                ffmpegArgs.addAll(listOf("-y", "-i", downloadedFile.absolutePath))
+                                ffmpegArgs.addAll(CompressionManager.getFFmpegArgs(targetEngine!!))
+                                ffmpegArgs.add(outputFile.absolutePath)
+                                ffmpegResponse = CompressionManager.executeFFmpeg(context, ffmpegArgs.toTypedArray())
+                            }
                             
                             // Encoder fallback: If native 'opus' failed, try 'libopus' (and vice versa)
-                            if ((ffmpegResponse != 0) && targetEngine.name.startsWith("Opus")) {
+                            if ((ffmpegResponse != 0) && (targetEngine?.name?.startsWith("Opus") == true)) {
                                  Log.w(TAG, "Primary FFmpeg opus encoder failed (Code $ffmpegResponse). Attempting fallback opus encoder.")
                                  val opusBitrate = when (targetEngine) {
                                      CompressionEngine.Opus64 -> "64k"
@@ -226,25 +247,23 @@ object MediaFetchUtils {
                                      CompressionEngine.Opus510 -> "510k"
                                      else -> "128k"
                                  }
-                                 val fallbackArgs = arrayOf("-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "libopus", "-b:a", opusBitrate, outputFile.absolutePath)
+                                 val fallbackArgs = arrayOf("-threads", "0", "-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "libopus", "-b:a", opusBitrate, outputFile.absolutePath)
                                  ffmpegResponse = CompressionManager.executeFFmpeg(context, fallbackArgs)
                             }
 
                             /**
                              * Resilience Fallback.
-                             * If the audiophile transcoding fails (e.g., an FFmpeg crash), 
-                             * we try a raw stream copy. If THAT fails, we do a pure Kotlin 
-                             * file copy. We never want to lose your download.
+                             * If transcoding fails, extract audio-only via copy or AAC.
                              */
                             if (ffmpegResponse != 0) {
                                  Log.w(TAG, "FFmpeg failed (Code $ffmpegResponse). Attempting copy fallback.")
-                                 val fallbackArgs = arrayOf("-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "copy", outputFile.absolutePath)
+                                 val fallbackArgs = arrayOf("-threads", "0", "-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "copy", outputFile.absolutePath)
                                  var fallbackResponse = CompressionManager.executeFFmpeg(context, fallbackArgs)
                                  
                                  if (fallbackResponse != 0) {
                                      // In case stream copy into target container failed (e.g. AAC into FLAC), extract pure audio to m4a
                                      val safeAudioFile = File(outputFile.parentFile, "$videoId.m4a")
-                                     val safeArgs = arrayOf("-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "aac", "-b:a", "192k", safeAudioFile.absolutePath)
+                                     val safeArgs = arrayOf("-threads", "0", "-y", "-i", downloadedFile.absolutePath, "-vn", "-c:a", "aac", "-b:a", "192k", safeAudioFile.absolutePath)
                                      fallbackResponse = CompressionManager.executeFFmpeg(context, safeArgs)
                                      if ((fallbackResponse == 0) && safeAudioFile.exists() && (safeAudioFile.length() > 0)) {
                                          outputFile = safeAudioFile
