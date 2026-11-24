@@ -271,23 +271,22 @@ The `CompressionManager` selects the codec based on your device status:
 
 | Priority | Trigger | Codec Choice |
 | :--- | :--- | :--- |
-| **Endurance** | Battery < 15% | **Opus** *(Fastest zero-transcode download & 85% data/storage saving)* |
-| **Efficiency** | Storage < 8GB | **Opus** / **AAC** *(Minimal file size footprint)* |
-| **Performance** | High-End Hardware & Charging | **SAC** / **L3AC** / **SQZ** *(Audiophile WavPack / Lossless)* |
-| **Streaming** | Mobile Data | **Opus** *(Extreme bandwidth efficiency)* |
+| **Endurance** | Battery < 15% / Power Saver | **Opus 64k** *(Fastest zero-transcode download & ultra-low battery saving)* |
+| **Efficiency** | Storage < 3GB | **AAC** *(Minimal file size footprint & universal compatibility)* |
+| **Balanced** | Storage < 8GB | **Opus** *(Next-Gen high efficiency ~128 kbps, native stream-copy)* |
+| **Performance** | High-End Hardware & Charging | **Opus 192k / 256k** *(Audiophile transparent, native stream-copy)* |
+| **Lossless (Manual)** | Explicit User Setting | **FLAC / SLAC / SQZ** *(Bit-exact lossless, hardware accelerated)* |
 
 ### Integrated Formats & Performance Matrix
 
-| Format | Compression | Quality | Storage Saving | Battery Usage |
+| Format | Compression | Quality | Storage Saving | Processing Speed |
 | :--- | :---: | :---: | :---: | :---: |
-| **Opus** (`.opus`) | Lossy | High (92k–510k) | Extreme | Excellent |
-| **AAC** (`.m4a`) | Lossy | Standard (192k–256k) | High | Excellent |
-| **FLAC** (`.flac`) | Lossless | Perfect Bit-Exact | Moderate | Best |
-| **WavPack** (`.wv` / `.mkv`) | Lossless / Hybrid | Perfect Bit-Exact | High | Good |
-| **L3AC** (`.mkv`) | Lossless Hi-Res | Audiophile (24-bit/48kHz) | High | Good |
-| **SAC** (`.mkv`) | Lossless Super Audio | Audiophile (24-bit/48kHz) | High | Good |
-| **SLAC** (`.flac`) | Lossless Super Lite | Perfect Bit-Exact | High | Good |
-| **SQZ** (`.flac`) | Lossless Compressed | Perfect Bit-Exact | High | Good |
+| **Opus** (`.opus`) | Lossy | High (64k–510k) | Extreme (~2–4 MB) | **Instant (< 50ms Stream Copy)** |
+| **AAC** (`.m4a`) | Lossy | Standard (192k–256k) | High (~3–5 MB) | **Instant (< 50ms Stream Copy)** |
+| **FLAC** (`.flac`) | Lossless | Perfect Bit-Exact | Moderate (~20–40 MB) | Fast (~1–2s Multi-threaded) |
+| **SLAC** (`.flac`) | Fast Lossless (L3) | Perfect Bit-Exact | Moderate | Very Fast |
+| **SQZ** (`.flac`) | Balanced Lossless (L5) | Perfect Bit-Exact | High | Fast (~1–2s Multi-threaded) |
+| **WavPack / SAC / L3AC** (`.flac`) | Lossless Compatibility | Perfect Bit-Exact | Moderate | Fast (~1–2s Multi-threaded) |
 
 ---
 

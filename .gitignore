@@ -42,3 +42,6 @@ fastlane/Preview.html
 google-services.json
 .artifacts/
 *.artifact.md
+
+# Documentation
+docs/ARCHITECTURE.md
